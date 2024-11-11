@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: library-management-system-backend
+    labels:
+        app: library-management-system-backend
+spec:
+    replicas: 1
+    selector:
+        matchLabels: 
+            app: library-management-system-backend
+    template:
+        metadata:
+            labels:
+                app: library-management-system-backend
+        spec:
+            hostNetwork: true
+            containers:
+            -   name: backend-k8s
+                image: joszker/library-management-system:backend-k8s
+                ports:
+                -   containerPort: 8000
+                envFrom:
+                -   secretRef:
+                        name: db-secret
