@@ -55,7 +55,7 @@ services:
       context: ./frontend/library-management-system
       dockerfile: Dockerfile
     ports:
-      - "3000:3000"
+      - "3000:80"
     depends_on:
       - backend
     volumes:
