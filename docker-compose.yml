@@ -40,6 +40,8 @@ services:
       - DATABASE_URL=${DATABASE_URL}
       - KAFKA_BROKER=kafka:9092
       - ELASTICSEARCH_URL=http://elasticsearch:9200
+    env_file:
+    - .env
     ports:
       - "8000:8000"
     depends_on:
