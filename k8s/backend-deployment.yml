@@ -17,7 +17,7 @@ spec:
             hostNetwork: true
             containers:
             -   name: backend-k8s
-                image: joszker/library-management-system:backend-k8s
+                image: pekoraptor/library-management-system:backend-k8s
                 ports:
                 -   containerPort: 8000
                 envFrom:

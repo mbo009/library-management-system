@@ -16,6 +16,6 @@ spec:
         spec:
             containers:
             -   name: frontend-k8s
-                image: joszker/library-management-system:frontend-k8s
+                image: pekoraptor/library-management-system:frontend-k8s
                 ports:
                 -   containerPort: 80
