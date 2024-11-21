@@ -3,5 +3,20 @@
   "references": [
     { "path": "./tsconfig.app.json" },
     { "path": "./tsconfig.node.json" }
-  ]
+  ],
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "jsx": "react"
+},
+"exclude": [
+  "node_modules",
+  "src/**/*.test.tsx",
+  "src/**/*.test.ts",
+  "src/**/*.spec.tsx",
+  "src/**/*.spec.ts"
+]
 }
