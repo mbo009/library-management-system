@@ -1,9 +1,7 @@
-import { useState} from 'react'
+import { useState } from "react";
 // import reactLogo from './assets/react.svg'
 // import viteLogo from '/vite.svg'
-import './App.css'
-
-
+import "./App.css";
 
 function App() {
   // const [count, setCount] = useState(0)
@@ -12,10 +10,10 @@ function App() {
 
   const fetchData = async () => {
     try {
-      const response = await fetch("http://localhost:8000/api/hello_world");
+      const response = await fetch("http://localhost:8000/api/hello_world/");
       const result = await response.json();
       console.log(`Fetched data: ${JSON.stringify(result)}`);
-      setFetchedData(result); // Update state with the fetched data
+      setFetchedData(result.message); // Update state with the fetched data
     } catch (err) {
       console.log("Error fetching response:", err);
     }
@@ -43,10 +41,16 @@ function App() {
       <p className="read-the-docs">
         Click on the Vite and React logos to learn more
       </p> */}
-    <button className="fetchButton" onClick={fetchData}></button>
-    {fetchedData != 0} ? <p data-testid="fetched-data">{JSON.stringify(fetchedData)}</p> : <p ></p>
+      <button className="fetchButton" onClick={fetchData}></button>
+      <div>
+        {fetchedData !== 0 ? (
+          <p data-testid="fetched-data">{JSON.stringify(fetchedData)}</p>
+        ) : (
+          <p></p>
+        )}
+      </div>
     </>
-  )
+  );
 }
 
-export default App
+export default App;
