@@ -44,7 +44,7 @@ function App() {
         Click on the Vite and React logos to learn more
       </p> */}
     <button className="fetchButton" onClick={fetchData}></button>
-    {fetchedData != 0} ? <p className="fetchedData">{JSON.stringify(fetchedData)}</p> : <p className="fetchedData"></p>
+    {fetchedData != 0} ? <p data-testid="fetched-data">{JSON.stringify(fetchedData)}</p> : <p ></p>
     </>
   )
 }
