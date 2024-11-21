@@ -14,9 +14,9 @@
   },
   "exclude": [
     "node_modules",
-    "src/**/*.test.tsx",
-    "src/**/*.test.ts",
-    "src/**/*.spec.tsx",
-    "src/**/*.spec.ts"
+    "src/*.test.tsx",
+    "src/*.test.ts",
+    "src/*.spec.tsx",
+    "src/*.spec.ts"
   ]
 }
