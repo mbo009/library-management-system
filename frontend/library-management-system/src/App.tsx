@@ -1,14 +1,29 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
+import { useState} from 'react'
+// import reactLogo from './assets/react.svg'
+// import viteLogo from '/vite.svg'
 import './App.css'
 
+
+
 function App() {
-  const [count, setCount] = useState(0)
+  // const [count, setCount] = useState(0)
+  // const [clicked, setCLicked] = useState(false);
+  const [fetchedData, setFetchedData] = useState(0);
+
+  const fetchData = async () => {
+    try {
+      const response = await fetch("http://localhost:8000/api/hello_world");
+      const result = await response.json();
+      console.log(`Fetched data: ${JSON.stringify(result)}`);
+      setFetchedData(result); // Update state with the fetched data
+    } catch (err) {
+      console.log("Error fetching response:", err);
+    }
+  };
 
   return (
     <>
-      <div>
+      {/* <div>
         <a href="https://vite.dev" target="_blank">
           <img src={viteLogo} className="logo" alt="Vite logo" />
         </a>
@@ -27,7 +42,9 @@ function App() {
       </div>
       <p className="read-the-docs">
         Click on the Vite and React logos to learn more
-      </p>
+      </p> */}
+    <button className="fetchButton" onClick={fetchData}></button>
+    {fetchedData != 0} ? <p className="fetchedData">{JSON.stringify(fetchedData)}</p> : <p className="fetchedData"></p>
     </>
   )
 }
