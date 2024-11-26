@@ -1,11 +1,15 @@
 asgiref==3.8.1
 black==24.10.0
+certifi==2024.8.30
+charset-normalizer==3.4.0
 click==8.1.7
+codecov==2.1.13
 coverage==7.6.8
 Django==4.2.16
 django-cors-headers==4.6.0
 flake8==7.1.1
 greenlet==3.1.1
+idna==3.10
 iniconfig==2.0.0
 kafka-python==2.0.2
 mccabe==0.7.0
@@ -25,4 +29,6 @@ pytest==8.3.3
 pytest-cov==6.0.0
 pytest-django==4.9.0
 python-dotenv==1.0.1
+requests==2.32.3
 sqlparse==0.5.2
+urllib3==2.2.3
