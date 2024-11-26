@@ -1,6 +1,6 @@
 ﻿{
-  "agentId": 21,
-  "agentName": "Self-hosted Action-runner",
+  "agentId": 22,
+  "agentName": "self-hosted-runner",
   "poolId": 1,
   "poolName": "Default",
   "serverUrl": "https://pipelinesghubeus13.actions.githubusercontent.com/pA1K6zsptPcwNlkQsjBSeAeBbp4AW4pT0oOgoX95b79udNVp8J/",

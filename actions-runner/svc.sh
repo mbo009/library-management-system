@@ -1,8 +1,8 @@
 #!/bin/bash
 
-SVC_NAME="actions.runner.mbo009-library-management-system.Self-hosted Action-runner.service"
+SVC_NAME="actions.runner.mbo009-library-management-system.self-hosted-runner.service"
 SVC_NAME=${SVC_NAME// /_}
-SVC_DESCRIPTION="GitHub Actions Runner (mbo009-library-management-system.Self-hosted Action-runner)"
+SVC_DESCRIPTION="GitHub Actions Runner (mbo009-library-management-system.self-hosted-runner)"
 
 SVC_CMD=$1
 arg_2=${2}
