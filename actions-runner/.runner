@@ -1,0 +1,9 @@
+﻿{
+  "agentId": 21,
+  "agentName": "Self-hosted Action-runner",
+  "poolId": 1,
+  "poolName": "Default",
+  "serverUrl": "https://pipelinesghubeus13.actions.githubusercontent.com/pA1K6zsptPcwNlkQsjBSeAeBbp4AW4pT0oOgoX95b79udNVp8J/",
+  "gitHubUrl": "https://github.com/mbo009/library-management-system",
+  "workFolder": "_work"
+}
