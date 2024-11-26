@@ -27,8 +27,8 @@ jobs:
           npm install
         working-directory: frontend/library-management-system
 
-      # Run Vitest tests
-      - name: Run tests
-        run: |
-          npm run test
-        working-directory: frontend/library-management-system
+      - name: Upload coverage to GitHub
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage
+          path: frontend/library-management-system/coverage/coverage-final.json

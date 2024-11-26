@@ -28,5 +28,11 @@ jobs:
 
       - name: Run Django Tests
         run: |
-          pytest
+          pytest --cov=backend --cov-report=xml --cov-report=term-missing
         working-directory: backend
+      
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage-report
+          path: backend/coverage.xml
