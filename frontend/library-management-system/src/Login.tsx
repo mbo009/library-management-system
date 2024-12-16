@@ -46,7 +46,7 @@ const Login: React.FC = () => {
   };
 
   const handleTabChange = (
-    event: React.SyntheticEvent,
+    _event: React.SyntheticEvent,
     newValue: number
   ): void => {
     setTab(newValue);

@@ -21,7 +21,7 @@ services:
       - zookeeper
 
   elasticsearch:
-    image: elasticsearch:8.15.3
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.15.3-arm64
     environment:
       - discovery.type=single-node
       - ES_JAVA_OPTS=-Xms512m -Xmx512m
@@ -29,6 +29,7 @@ services:
       - "9200:9200"
       - "9300:9300"
     volumes:
+      - elastic_data:/usr/share/elasticsearch/data
       - /etc/localtime:/etc/localtime:ro
       - /etc/timezone:/etc/timezone:ro
 
@@ -41,7 +42,7 @@ services:
       - KAFKA_BROKER=kafka:9092
       - ELASTICSEARCH_URL=http://elasticsearch:9200
     env_file:
-    - .env
+      - .env
     ports:
       - "8000:8000"
     depends_on:

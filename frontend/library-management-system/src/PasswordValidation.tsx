@@ -1,7 +1,24 @@
-import PropTypes from "prop-types";
 import { IconButton, Typography, Stack } from "@mui/material";
 
-const PasswordValidation = ({ passwordInfo }) => {
+interface PasswordInfo {
+  passwordTooShort: boolean;
+  passwordWithoutUpper: boolean;
+  passwordWithoutDigit: boolean;
+  passwordWithoutSpecial: boolean;
+}
+
+interface PasswordValidationProps {
+  passwordInfo: PasswordInfo;
+}
+
+interface ValidationItemProps {
+  condition: boolean;
+  message: string;
+}
+
+const PasswordValidation: React.FC<PasswordValidationProps> = ({
+  passwordInfo,
+}) => {
   const passwordValidationRules = [
     {
       condition: passwordInfo.passwordTooShort,
@@ -21,7 +38,10 @@ const PasswordValidation = ({ passwordInfo }) => {
     },
   ];
 
-  const ValidationItem = ({ condition, message }) => (
+  const ValidationItem: React.FC<ValidationItemProps> = ({
+    condition,
+    message,
+  }) => (
     <Stack direction="row" spacing={1} alignItems="center">
       <IconButton size="small">
         {condition ? (
@@ -38,11 +58,6 @@ const PasswordValidation = ({ passwordInfo }) => {
     </Stack>
   );
 
-  ValidationItem.propTypes = {
-    condition: PropTypes.bool.isRequired,
-    message: PropTypes.string.isRequired,
-  };
-
   return (
     <Stack spacing={2}>
       {passwordValidationRules.map((rule, index) => (
@@ -54,15 +69,6 @@ const PasswordValidation = ({ passwordInfo }) => {
       ))}
     </Stack>
   );
-};
-
-PasswordValidation.propTypes = {
-  passwordInfo: PropTypes.shape({
-    passwordTooShort: PropTypes.bool.isRequired,
-    passwordWithoutUpper: PropTypes.bool.isRequired,
-    passwordWithoutDigit: PropTypes.bool.isRequired,
-    passwordWithoutSpecial: PropTypes.bool.isRequired,
-  }).isRequired,
 };
 
 export default PasswordValidation;
