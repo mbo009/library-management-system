@@ -1,28 +1,22 @@
-import { useState } from "react";
+import { ThemeProvider } from "@emotion/react";
 import "./App.css";
+import { Route, Routes, useLocation } from "react-router-dom";
+import theme from "./utils/theme.ts";
+import Login from "./Login";
+import { AnimatePresence } from "framer-motion";
+import WrappedHome from "./Home.tsx";
 
 function App() {
-  const [fetchedData, setFetchedData] = useState(0);
-
-  const fetchData = async () => {
-    try {
-      const response = await fetch("http://localhost:8000/api/hello_world/");
-      const result = await response.json();
-      console.log(`Fetched data: ${JSON.stringify(result)}`);
-      setFetchedData(result.message); // Update state with the fetched data
-    } catch (err) {
-      console.log("Error fetching response:", err);
-    }
-  };
-
+  const location = useLocation();
   return (
-    <>
-      <button className="fetchButton" onClick={fetchData}>
-        fetch data
-      </button>
-      {fetchedData != 0} ?{" "}
-      <p data-testid="fetched-data">{JSON.stringify(fetchedData)}</p> : <p></p>
-    </>
+    <ThemeProvider theme={theme}>
+      <AnimatePresence mode="wait">
+        <Routes location={location} key={location.pathname}>
+          <Route path="/login" element={<Login />} />
+          <Route path="/home" element={<WrappedHome />} />
+        </Routes>
+      </AnimatePresence>
+    </ThemeProvider>
   );
 }
 
