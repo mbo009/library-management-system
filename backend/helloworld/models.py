@@ -1,6 +1,7 @@
 from django.db import models
 from datetime import date
 
+
 class Author(models.Model):
     name = models.CharField(max_length=255, unique=True)
     bio = models.TextField(blank=True, null=True)
@@ -10,13 +11,13 @@ class Author(models.Model):
 
 
 class Book(models.Model):
-    title = models.CharField(max_length=255) 
+    title = models.CharField(max_length=255)
     description = models.TextField(blank=True, null=True)
     isbn = models.CharField(max_length=13, unique=True)
     published_date = models.DateField(blank=True, null=True)
     page_count = models.PositiveIntegerField(blank=True, null=True)
     genre = models.CharField(max_length=255)
-    authors = models.ManyToManyField(Author, related_name='books')
+    authors = models.ManyToManyField(Author, related_name="books")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -30,9 +31,7 @@ class User(models.Model):
     surname = models.CharField(max_length=255)
     password_hash = models.CharField(max_length=255)
     borrowed_books = models.ManyToManyField(
-        Book,
-        through='BorrowedBook',
-        related_name='borrowers'
+        Book, through="BorrowedBook", related_name="borrowers"
     )
 
     def __str__(self):
@@ -41,15 +40,13 @@ class User(models.Model):
     @property
     def currently_borrowed_books(self):
         return Book.objects.filter(
-            borrowedbook__user=self,
-            borrowedbook__returned_date__isnull=True
+            borrowedbook__user=self, borrowedbook__returned_date__isnull=True
         )
 
     @property
     def previously_borrowed_books(self):
         return Book.objects.filter(
-            borrowedbook__user=self,
-            borrowedbook__returned_date__isnull=False
+            borrowedbook__user=self, borrowedbook__returned_date__isnull=False
         )
 
 

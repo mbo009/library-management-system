@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "corsheaders",
     "helloworld",
+    "django_elasticsearch_dsl",
 ]
 
 MIDDLEWARE = [
@@ -92,11 +93,16 @@ DATABASES = {
 }
 
 ELASTICSEARCH_DSL = {
-    'default': {
-        'hosts': 'http://localhost:9200',
+    "default": {
+        "hosts": "http://elasticsearch:9200",
     },
 }
 
+# ELASTICSEARCH_DSL = {
+#     "default": {"hosts": "http://elastic:vNAR2zQ_yCpPHp1m_j4W@localhost:9200"},
+# }
+
+# f"{os.getenv("ELASTIC_SEARCH_USER")}:{os.getenv("ELASTIC_SEARCH_PASSWORD")}@localhost:9200"
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
 
@@ -141,5 +147,3 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 CORS_ALLOW_ALL_ORIGINS = True
 SECURE_SSL_REDIRECT = False  # Disable HTTPS redirect for development
 SECURE_BROWSER_XSS_FILTER = True
-
-
