@@ -1,6 +1,7 @@
 from django.http import JsonResponse
 from elasticsearch_dsl.query import MultiMatch
 from helloworld.documents import BookDocument
+from helloworld.serializers import BookSerializer
 
 
 def hello_world_endpoint(request):
@@ -17,18 +18,16 @@ def find_book(request):
             fields=[
                 "title",
                 "isbn",
-                "page_count",
-                "published_date",
                 "description",
                 "genre",
                 "authors.name",
             ],
             fuzziness="AUTO",
         )
-        # print(m_query)
         try:
             books = BookDocument.search().query(m_query).to_queryset()
-            return JsonResponse(books)
+            serializer = BookSerializer(books, many=True)
+            return JsonResponse(serializer.data, safe=False)
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=500)
 

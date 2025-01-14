@@ -8,39 +8,37 @@ class BookDocument(Document):
     """
     Elasticsearch document for Book.
     """
+
     authors = fields.ObjectField(
         properties={
-            'id': fields.IntegerField(),
-            'name': fields.TextField(),
-            'bio': fields.TextField(),
+            "id": fields.IntegerField(),
+            "name": fields.TextField(),
+            "bio": fields.TextField(),
         }
     )
 
     class Index:
-        name = 'books'
+        name = "books"
 
         settings = {
-            'number_of_shards': 1,
-            'number_of_replicas': 0,
+            "number_of_shards": 1,
+            "number_of_replicas": 0,
         }
 
     class Django:
         model = Book
         fields = [
-            'title',
-            'description',
-            'isbn',
-            'published_date',
-            'page_count',
-            'genre',
-
+            "title",
+            "description",
+            "isbn",
+            "genre",
         ]
 
         related_models = [Author]
 
     def prepare_authors(self, instance):
         return [
-            {'name': author.name, 'bio': author.bio}
+            {"name": author.name, "bio": author.bio}
             for author in instance.authors.all()
         ]
 
