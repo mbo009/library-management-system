@@ -7,7 +7,7 @@ services:
       - "2181:2181"
     environment:
       - ALLOW_ANONYMOUS_LOGIN=yes
-
+    container_name: zookeeper
   kafka:
     image: bitnami/kafka:3.8
     ports:
@@ -19,30 +19,34 @@ services:
       - ALLOW_PLAINTEXT_LISTENER=yes
     depends_on:
       - zookeeper
+    container_name: kafka
 
   elasticsearch:
     image: elasticsearch:8.15.3
     environment:
       - discovery.type=single-node
       - ES_JAVA_OPTS=-Xms512m -Xmx512m
-      - xpack.security.enabled=false 
+      - xpack.security.enabled=false
     ports:
       - "9200:9200"
       - "9300:9300"
     volumes:
       - /etc/localtime:/etc/localtime:ro
       - /etc/timezone:/etc/timezone:ro
+    container_name: elasticsearch
 
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
+    container_name: backend
     environment:
+      - SERVICE_ROLE=backend
       - DATABASE_URL=${DATABASE_URL}
       - KAFKA_BROKER=kafka:9092
       - ELASTICSEARCH_URL=http://elasticsearch:9200
     env_file:
-    - .env
+      - .env
     ports:
       - "8000:8000"
     depends_on:
@@ -55,12 +59,24 @@ services:
     build:
       context: ./frontend/library-management-system
       dockerfile: Dockerfile
+    container_name: frontend
     ports:
       - "3000:80"
     depends_on:
       - backend
     volumes:
       - ./frontend:/app
+
+  kafka_consumer:
+    build:
+      context: ./backend
+      dockerfile: ./api/consumer/Dockerfile
+    container_name: kafka_consumer
+    environment:
+      - SERVICE_ROLE=kafka_consumer
+    command: python manage.py start_inventory_consumer
+    depends_on:
+      - backend
 
 volumes:
   elastic_data:
