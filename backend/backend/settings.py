@@ -41,7 +41,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'helloworld',
+    'api',
 ]
 
 MIDDLEWARE = [
@@ -130,3 +130,14 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+KAFKA_CONFIG = {
+    'bootstrap.servers': 'kafka:9092',
+    'topics': {'book_created' : 'book_created',
+               'author_created' : 'author_created',
+               'book_deleted' : 'book_deleted',
+               'reservation_created' : 'reservation_created',
+               'borrowing_created' : 'borrowing_created',
+               'borrowing_returned' : 'borrowing_returned',
+        }
+}
