@@ -185,7 +185,7 @@ const Login: React.FC = () => {
         navigate("/home");
       } else if (tab === 1) {
         alert(
-          "Rejestracja udana. Sprawdź skrzynkę pocztową aby zweryfikować konto!"
+          "Account registered successfully. You can now log in using your credentials."
         );
         setTab(0);
       }
@@ -196,8 +196,8 @@ const Login: React.FC = () => {
       );
       alert(
         tab === 0
-          ? "Logowanie nieudane, sprawdź swoje dane i spróbuj ponownie!"
-          : "Rejestracja nieudana, sprawdź swoje dane i spróbuj ponownie!"
+          ? "Login failed, check your credentials and try again!"
+          : "Registration failed, please try again!"
       );
     }
   };

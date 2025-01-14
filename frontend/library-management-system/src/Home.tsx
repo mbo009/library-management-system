@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   TextField,
   Box,
@@ -7,28 +7,58 @@ import {
   CircularProgress,
 } from "@mui/material";
 import transition from "./utils/transition";
-
-type Book = {
-  id: number;
-  title: string;
-  authors: string[];
-  genre: string;
-  isbn: string;
-  description: string | null;
-  page_count: number | null;
-  published_date: string | null;
-  created_at: string;
-  updated_at: string;
-};
+import { Books } from "./types/BookList";
+import { Book } from "./types/Book";
+import BookList from "./BookList";
 
 const Home = () => {
   const [query, setQuery] = useState<string>("");
   const [results, setResults] = useState<Array<Book>>([]);
-  const [loading, setLoading] = useState<boolean>(false);
+  const [searchLoading, setSearchLoading] = useState<boolean>(false);
+  const [booksLoading, setBooksLoading] = useState<boolean>(false);
+  const [books, setBooks] = useState<Books>({
+    borrowed: [],
+    returned: [],
+    queued: [],
+  });
+
+  useEffect(() => {
+    loadUserBooks();
+  }, []);
+
+  const loadUserBooks = async () => {
+    try {
+      setBooksLoading(true);
+      console.log("Fetching user books...");
+
+      const response = await fetch(
+        "http://localhost:8000/api/get_user_books/",
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Network response was not ok");
+      }
+
+      const books = await response.json();
+      setBooks(books);
+      console.log("Fetched user books:", books);
+    } catch (error) {
+      console.error("Error fetching user books:", error);
+    } finally {
+      setBooksLoading(false);
+    }
+  };
 
   const handleSearch = async (input: string) => {
     try {
-      setLoading(true);
+      setSearchLoading(true);
       console.log("Searching books matching query: ", input);
 
       const response = await fetch(
@@ -52,7 +82,7 @@ const Home = () => {
     } catch (error) {
       console.error("Error searching:", error);
     } finally {
-      setLoading(false);
+      setSearchLoading(false);
     }
   };
 
@@ -77,7 +107,7 @@ const Home = () => {
           sx={{ width: "100%" }}
         />
         <Box sx={{ maxHeight: "75vh", overflowY: "auto" }}>
-          {loading ? (
+          {searchLoading ? (
             <Box
               marginTop={2}
               sx={{
@@ -118,9 +148,7 @@ const Home = () => {
           )}
         </Box>
       </Paper>
-      <Paper elevation={20} sx={{ padding: 2 }}>
-        <Typography variant="h3">Your books</Typography>
-      </Paper>
+      <BookList books={books} booksLoading={booksLoading} />
     </Box>
   );
 };

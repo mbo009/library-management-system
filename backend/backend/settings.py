@@ -147,3 +147,30 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 CORS_ALLOW_ALL_ORIGINS = True
 SECURE_SSL_REDIRECT = False  # Disable HTTPS redirect for development
 SECURE_BROWSER_XSS_FILTER = True
+CORS_ALLOW_CREDENTIALS = True  # Enable credentials
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+        },
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": "DEBUG",
+    },
+}
+
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+]
+
+AUTH_USER_MODEL = 'helloworld.User'
+
+SESSION_COOKIE_SAMESITE = 'Lax'
+SESSION_COOKIE_SECURE = False
+SESSION_ENGINE = "django.contrib.sessions.backends.db"
+
+LOGIN_URL = '/api/sign_in/'
