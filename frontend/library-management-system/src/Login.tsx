@@ -1,4 +1,4 @@
-import React, { useState, ChangeEvent, FormEvent } from "react";
+import { useState, ChangeEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Button,
@@ -13,9 +13,11 @@ import {
   IconButton,
   Typography,
   Stack,
+  InputAdornment,
 } from "@mui/material";
 import PasswordValidation from "./PasswordValidation";
 import transition from "./utils/transition";
+import SHA256 from "crypto-js/sha256";
 
 interface PasswordInfo {
   passwordTooShort: boolean;
@@ -23,6 +25,14 @@ interface PasswordInfo {
   passwordWithoutDigit: boolean;
   passwordWithoutSpecial: boolean;
 }
+
+// type UserData = {
+//   email: string;
+//   phoneNumber: string;
+//   firstName: string;
+//   lastName: string;
+//   password: string;
+// };
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
@@ -89,24 +99,107 @@ const Login: React.FC = () => {
     }
   };
 
-  const handleSubmit = async (
-    event: FormEvent<HTMLFormElement>
-  ): Promise<void> => {
+  const handleLogin = async (): Promise<Response> => {
+    const emailElement = document.getElementById("email") as HTMLInputElement;
+    const passwordElement = document.getElementById(
+      "password"
+    ) as HTMLInputElement;
+
+    const e_mail = emailElement?.value || "";
+    const password = SHA256(passwordElement?.value || "").toString();
+
+    const response = await fetch("http://localhost:8000/api/sign_in/", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+      body: JSON.stringify({ email: e_mail, password_hash: password }),
+    });
+
+    return response;
+  };
+
+  const handleRegister = async (): Promise<Response> => {
+    const e_mail =
+      (document.getElementById("email") as HTMLInputElement)?.value || "";
+    const password = SHA256(
+      (document.getElementById("password") as HTMLInputElement)?.value || ""
+    ).toString();
+    const firstName =
+      (document.getElementById("first-name") as HTMLInputElement)?.value || "";
+    const lastName =
+      (document.getElementById("last-name") as HTMLInputElement)?.value || "";
+    const phoneNumber =
+      "+48" +
+        (document.getElementById("phone-number") as HTMLInputElement)?.value ||
+      "";
+
+    const librarianToken = checked
+      ? (document.getElementById("librarian-token") as HTMLInputElement)
+          ?.value || ""
+      : null;
+
+    const body = JSON.stringify({
+      e_mail,
+      phone_number: phoneNumber,
+      first_name: firstName,
+      last_name: lastName,
+      password_hash: password,
+      librarian_key: checked ? librarianToken : "",
+    });
+
+    const response = await fetch("http://localhost:8000/api/sign_up/", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body,
+    });
+
+    return response;
+  };
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const responseBody = {
-      userID: "12345",
-      isAdmin: true,
-      activeGames: [
-        { id: "1", name: "Polowanie na karasie" },
-        { id: "2", name: "Hula hop z Trzaskowskim" },
-      ],
-      pastGames: [
-        { id: "3", name: "Odwzorowanie bitwy o Psie Pole " },
-        { id: "4", name: "Inauguracja prezydenta miasta Cycowa" },
-      ],
-    };
-    localStorage.setItem("user", JSON.stringify(responseBody));
-    navigate("/home");
+    let response: Response;
+
+    try {
+      if (tab === 0) {
+        response = await handleLogin();
+      } else {
+        response = await handleRegister();
+      }
+
+      console.log(response);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log(data);
+
+      if (tab === 0) {
+        localStorage.setItem("user", JSON.stringify(data));
+        navigate("/home");
+      } else if (tab === 1) {
+        alert(
+          "Rejestracja udana. Sprawdź skrzynkę pocztową aby zweryfikować konto!"
+        );
+        setTab(0);
+      }
+    } catch (error) {
+      console.error(
+        tab === 0 ? "Login failed:" : "Registration failed:",
+        error
+      );
+      alert(
+        tab === 0
+          ? "Logowanie nieudane, sprawdź swoje dane i spróbuj ponownie!"
+          : "Rejestracja nieudana, sprawdź swoje dane i spróbuj ponownie!"
+      );
+    }
   };
 
   return (
@@ -128,8 +221,8 @@ const Login: React.FC = () => {
               textColor="primary"
               indicatorColor="secondary"
             >
-              <Tab label="ZALOGUJ SIĘ" />
-              <Tab label="UTWÓRZ KONTO" />
+              <Tab label="SIGN IN" />
+              <Tab label="CREATE ACCOUNT" />
             </Tabs>
           </Box>
 
@@ -146,7 +239,7 @@ const Login: React.FC = () => {
                 fullWidth
                 id="email"
                 color="secondary"
-                label="e-mail/Nazwa użytkownika"
+                label="e-mail"
                 name="email"
                 autoComplete="email"
                 autoFocus
@@ -156,7 +249,7 @@ const Login: React.FC = () => {
                 required
                 fullWidth
                 name="password"
-                label="Hasło"
+                label="Password"
                 type="password"
                 id="password"
                 color="secondary"
@@ -168,7 +261,7 @@ const Login: React.FC = () => {
                 variant="contained"
                 sx={{ mt: 3, mb: 2 }}
               >
-                ZALOGUJ SIĘ
+                SIGN IN
               </Button>
             </Box>
           ) : (
@@ -193,10 +286,50 @@ const Login: React.FC = () => {
                 margin="normal"
                 required
                 fullWidth
-                id="username"
-                label="Nazwa użytkownika"
-                name="username"
-                autoComplete="username"
+                id="phone-number"
+                label="Phone number"
+                name="phoneNumber"
+                autoComplete="phone-number"
+                color="secondary"
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Box sx={{ display: "flex", alignItems: "center" }}>
+                        <img
+                          src="https://upload.wikimedia.org/wikipedia/en/1/12/Flag_of_Poland.svg"
+                          alt="Polish flag"
+                          style={{ width: 20, height: 15, marginRight: 8 }}
+                        />
+                        +48
+                      </Box>
+                    </InputAdornment>
+                  ),
+                  inputProps: {
+                    maxLength: 9,
+                  },
+                }}
+                onInput={(e: React.ChangeEvent<HTMLInputElement>) => {
+                  e.target.value = e.target.value.replace(/[^0-9]/g, "");
+                }}
+              />
+              <TextField
+                margin="normal"
+                required
+                fullWidth
+                id="first-name"
+                label="First name"
+                name="firstName"
+                autoComplete="First name"
+                color="secondary"
+              />
+              <TextField
+                margin="normal"
+                required
+                fullWidth
+                id="last-name"
+                label="Last name"
+                name="lastName"
+                autoComplete="Last name"
                 color="secondary"
               />
               <TextField
@@ -204,7 +337,7 @@ const Login: React.FC = () => {
                 required
                 fullWidth
                 name="password"
-                label="Hasło"
+                label="Password"
                 type="password"
                 id="password"
                 autoComplete="new-password"
@@ -234,7 +367,7 @@ const Login: React.FC = () => {
                   required
                   fullWidth
                   name="confirmPassword"
-                  label="Powtórz hasło"
+                  label="Confirm password"
                   type="password"
                   id="confirm-password"
                   autoComplete="new-password"
@@ -262,7 +395,7 @@ const Login: React.FC = () => {
                       </span>
                     </IconButton>
                     <Typography variant="body2">
-                      {"Hasła nie są takie same!"}
+                      {"Passwords dont match!"}
                     </Typography>
                   </Stack>
                 </Box>
@@ -280,17 +413,17 @@ const Login: React.FC = () => {
                         inputProps={{ "aria-label": "controlled" }}
                       />
                     }
-                    label="Czy jesteś administratorem?"
+                    label="Are you a librarian?"
                   />
                   <TextField
                     disabled={!checked}
                     variant={!checked ? "filled" : "outlined"}
                     margin="normal"
                     fullWidth
-                    name="adminToken"
-                    label="Admin token"
+                    name="librarianToken"
+                    label="Librarian token"
                     type="text"
-                    id="admin-token"
+                    id="librarian-token"
                     color="secondary"
                   />
                   <Button
@@ -299,7 +432,7 @@ const Login: React.FC = () => {
                     variant="contained"
                     sx={{ mt: 3, mb: 2 }}
                   >
-                    UTWÓRZ KONTO
+                    CREATE ACCOUNT
                   </Button>
                 </Box>
               </Box>

@@ -5,6 +5,5 @@
   left: 0;
   width: 100%; /* Ensures it covers the full screen width */
   height: 100vh; /* Ensures it covers the full viewport height */
-  background: white; /* Adjust to match your design or component background */
   z-index: 1; /* Stacks the sliding elements appropriately */
 }

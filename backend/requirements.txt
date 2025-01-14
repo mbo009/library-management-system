@@ -5,10 +5,11 @@ charset-normalizer==3.4.0
 click==8.1.7
 codecov==2.1.13
 coverage==7.6.8
-Django==4.2.16
+Django==4.2.17
 django-apps==0.1.0
 django-cors-headers==4.6.0
 django-elasticsearch-dsl==8.0
+djangorestframework==3.15.2
 elastic-transport==8.15.1
 elasticsearch==8.17.0
 elasticsearch-dsl==8.17.0
