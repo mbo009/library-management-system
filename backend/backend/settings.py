@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     "corsheaders",
     "helloworld",
     "django_elasticsearch_dsl",
+    'rest_framework',
 ]
 
 MIDDLEWARE = [

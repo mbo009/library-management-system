@@ -3,13 +3,35 @@ from django.http import JsonResponse
 from elasticsearch_dsl.query import MultiMatch
 from helloworld.documents import BookDocument
 from django.contrib.auth import authenticate, login
-from helloworld.serializers import BookSerializer
+from helloworld.serializers import BookSerializer, AuthorSerializer
 from django.db import transaction
-from helloworld.models import User, LibrarianKeys
-from rest_framework import status
 import json
 import logging
 from django.contrib.auth.hashers import make_password
+from helloworld.models import User, LibrarianKeys, Book, Author
+from rest_framework.generics import ListAPIView, RetrieveAPIView
+from rest_framework import status
+
+
+
+class BookListView(ListAPIView):
+    queryset = Book.objects.all()
+    serializer_class = BookSerializer
+
+
+class AuthorListView(ListAPIView):
+    queryset = Author.objects.all()
+    serializer_class = AuthorSerializer
+
+
+class BookDetailView(RetrieveAPIView):
+    queryset = Book.objects.all()
+    serializer_class = BookSerializer
+
+
+class AuthorDetailView(RetrieveAPIView):
+    queryset = Author.objects.all()
+    serializer_class = AuthorSerializer
 
 logger = logging.getLogger(__name__)
 
