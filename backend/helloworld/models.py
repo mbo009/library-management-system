@@ -1,4 +1,5 @@
 from django.db import models
+from django.contrib.auth.models import AbstractBaseUser
 from datetime import date
 
 
@@ -25,14 +26,23 @@ class Book(models.Model):
         return self.title
 
 
-class User(models.Model):
-    username = models.CharField(max_length=255, default="player")
+class User(AbstractBaseUser):
+    user_id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=255)
     surname = models.CharField(max_length=255)
-    password_hash = models.CharField(max_length=255)
+    email = models.EmailField(max_length=255, unique=True)
+    phone_number = models.CharField(max_length=255, blank=True, null=True)
+    # password_hash = models.CharField(max_length=255)
     borrowed_books = models.ManyToManyField(
         Book, through="BorrowedBook", related_name="borrowers"
     )
+    is_librarian = models.BooleanField(default=False)
+
+    USERNAME_FIELD = "email"
+    REQUIRED_FIELDS = ["name", "surname", "phone_number", "email"]
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.name} {self.surname}"
@@ -48,6 +58,17 @@ class User(models.Model):
         return Book.objects.filter(
             borrowedbook__user=self, borrowedbook__returned_date__isnull=False
         )
+
+
+class LibrarianKeys(models.Model):
+    librarian_key = models.CharField(max_length=32, primary_key=True)
+    used = models.BooleanField(default=False)
+    librarian_id = models.ForeignKey(
+        User, on_delete=models.CASCADE, blank=True, null=True
+    )
+
+    def __str__(self):
+        return self.adminKey
 
 
 class BorrowedBook(models.Model):

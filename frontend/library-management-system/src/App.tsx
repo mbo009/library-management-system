@@ -1,4 +1,4 @@
-import { ThemeProvider } from "@emotion/react";
+import { ThemeProvider, CssBaseline } from "@mui/material";
 import "./App.css";
 import { Route, Routes, useLocation } from "react-router-dom";
 import theme from "./utils/theme.ts";
@@ -10,6 +10,7 @@ function App() {
   const location = useLocation();
   return (
     <ThemeProvider theme={theme}>
+      <CssBaseline />
       <AnimatePresence mode="wait">
         <Routes location={location} key={location.pathname}>
           <Route path="/login" element={<Login />} />

@@ -1,19 +1,17 @@
-import React, { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   TextField,
   Box,
   Typography,
-  Container,
-  List,
-  ListItem,
   Paper,
+  CircularProgress,
 } from "@mui/material";
 import transition from "./utils/transition";
 
 type Book = {
   id: number;
   title: string;
-  authors: string[]; // Assuming authors is an array of strings
+  authors: string[];
   genre: string;
   isbn: string;
   description: string | null;
@@ -26,9 +24,11 @@ type Book = {
 const Home = () => {
   const [query, setQuery] = useState<string>("");
   const [results, setResults] = useState<Array<Book>>([]);
+  const [loading, setLoading] = useState<boolean>(false);
 
   const handleSearch = async (input: string) => {
     try {
+      setLoading(true);
       console.log("Searching books matching query: ", input);
 
       const response = await fetch(
@@ -51,6 +51,8 @@ const Home = () => {
       setResults(books);
     } catch (error) {
       console.error("Error searching:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -67,7 +69,7 @@ const Home = () => {
 
   return (
     <Box p={5} maxWidth={"30%"}>
-      <Paper elevation={20} sx={{ padding: 2 }}>
+      <Paper elevation={20} sx={{ padding: 2, marginBottom: 2 }}>
         <TextField
           label="Search"
           value={query}
@@ -75,28 +77,49 @@ const Home = () => {
           sx={{ width: "100%" }}
         />
         <Box sx={{ maxHeight: "75vh", overflowY: "auto" }}>
-          {results.map((item) => (
+          {loading ? (
             <Box
-              key={item.title}
+              marginTop={2}
               sx={{
                 display: "flex",
+                justifyContent: "center",
                 alignItems: "center",
-                my: 1,
-                cursor: "pointer",
-                "&:hover": {
-                  backgroundColor: "lightgray",
-                },
               }}
-              onClick={(e) => {
-                e.stopPropagation();
-              }}
+              overflow={"hidden"}
             >
-              <Typography variant="h3" sx={{ flexGrow: 1 }}>
-                {item.title}
-              </Typography>
+              <CircularProgress />
             </Box>
-          ))}
+          ) : results.length === 0 && query.length >= 4 ? (
+            <Typography variant="h6" sx={{ textAlign: "center", marginTop: 2 }}>
+              We didn't find a book matching your description.
+            </Typography>
+          ) : (
+            results.map((item) => (
+              <Box
+                key={item.title}
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  my: 1,
+                  cursor: "pointer",
+                  "&:hover": {
+                    backgroundColor: "lightgray",
+                  },
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                }}
+              >
+                <Typography variant="h3" sx={{ flexGrow: 1 }}>
+                  {item.title}
+                </Typography>
+              </Box>
+            ))
+          )}
         </Box>
+      </Paper>
+      <Paper elevation={20} sx={{ padding: 2 }}>
+        <Typography variant="h3">Your books</Typography>
       </Paper>
     </Box>
   );

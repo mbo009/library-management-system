@@ -22,19 +22,19 @@ const PasswordValidation: React.FC<PasswordValidationProps> = ({
   const passwordValidationRules = [
     {
       condition: passwordInfo.passwordTooShort,
-      message: "Długość hasła powinna wynosić przynajmniej 8 znaków",
+      message: "Password should be at least 8 characters long",
     },
     {
       condition: passwordInfo.passwordWithoutUpper,
-      message: "Hasło powinno zawierać przynajmniej 1 dużą literę",
+      message: "Password should contain at least 1 uppercase letter",
     },
     {
       condition: passwordInfo.passwordWithoutDigit,
-      message: "Hasło powinno zawierać przynajmniej 1 cyfrę",
+      message: "Password should contain at least 1 digit",
     },
     {
       condition: passwordInfo.passwordWithoutSpecial,
-      message: "Hasło powinno zawierać przynajmniej 1 znak specjalny",
+      message: "Password should contain at least 1 special character",
     },
   ];
 

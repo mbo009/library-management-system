@@ -14,11 +14,14 @@
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
+    "@mui/icons-material": "^6.3.1",
     "@mui/material": "^6.2.0",
     "@types/react-router-dom": "^5.3.3",
+    "crypto-js": "^4.2.0",
     "framer-motion": "^11.15.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "react-phone-input-2": "^2.15.1",
     "react-router-dom": "^7.0.2",
     "serve": "^14.2.4"
   },
@@ -26,6 +29,7 @@
     "@eslint/js": "^9.13.0",
     "@testing-library/react": "^16.0.1",
     "@testing-library/user-event": "^14.5.2",
+    "@types/crypto-js": "^4.2.2",
     "@types/react": "^18.3.16",
     "@types/react-dom": "^18.3.5",
     "@vitejs/plugin-react": "^4.3.3",
