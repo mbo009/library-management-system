@@ -12,7 +12,6 @@ import {
   ListItem,
   ListSubheader,
   ListItemText,
-  ListItemButton,
 } from "@mui/material";
 import transition from "../utils/transition";
 
@@ -23,29 +22,28 @@ interface Author {
   name: string;
 }
 
-
 interface Book {
-    id: number;
-    isbn: string;
-    title: string;
-    description: string;
-    genre: string;
-    authors: Array<Author>;
-    publishedDate: Date | null;
-    pageCount: number;
+  id: number;
+  isbn: string;
+  title: string;
+  description: string;
+  genre: string;
+  authors: Array<Author>;
+  publishedDate: Date | null;
+  pageCount: number;
 }
 
 function initBook(): Book {
-    return {
-        id: 0,
-        isbn: "",
-        title: "",
-        description: "",
-        genre: "",
-        authors: [],
-        publishedDate: null,
-        pageCount: 1,
-    };
+  return {
+    id: 0,
+    isbn: "",
+    title: "",
+    description: "",
+    genre: "",
+    authors: [],
+    publishedDate: null,
+    pageCount: 1,
+  };
 }
 
 type EditBookProps = {
@@ -57,37 +55,41 @@ const EditBook: React.FC<EditBookProps> = ({ create }) => {
 
   const [selectAuthor, setSelectAuthor] = useState(false);
 
-  useEffect(() => {
-    
-  }, []);
+  useEffect(() => {}, []);
 
-  const handlePublishedDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const date = e.target.value;
-    setBook({...book, publishedDate: new Date()});
+  const handlePublishedDateChange = (
+    _e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    // const date = e.target.value;
+    setBook({ ...book, publishedDate: new Date() });
   };
 
   const handleCloseAuthorDialog = (author?: Author) => {
     if (author) {
-      setBook({...book, authors: [...book.authors, author] });
+      setBook({ ...book, authors: [...book.authors, author] });
     }
     setSelectAuthor(false);
   };
-  
+
   const handleRemoveAuthor = (indexToRemove: number) => {
     const authors = book.authors.filter((_, index) => index !== indexToRemove);
-    setBook({...book, authors: authors});
-  }
-
+    setBook({ ...book, authors: authors });
+  };
 
   const isBookISBNValid = isValidISBN(book.isbn);
 
-
   return (
     <Container maxWidth="sm" sx={{ paddingY: 5 }}>
-      <Box position="relative" display="flex" flexDirection="column" alignItems="center" justifyContent="center" gap={2}>
-
+      <Box
+        position="relative"
+        display="flex"
+        flexDirection="column"
+        alignItems="center"
+        justifyContent="center"
+        gap={2}
+      >
         <Typography variant="h2" sx={{ mb: "15px" }}>
-          { create ? "Create a new book" : "Edit book"}
+          {create ? "Create a new book" : "Edit book"}
         </Typography>
 
         <TextField
@@ -96,18 +98,18 @@ const EditBook: React.FC<EditBookProps> = ({ create }) => {
           multiline
           rows={1}
           value={book.title}
-          onChange={(e) => setBook({...book, title: e.target.value})}
+          onChange={(e) => setBook({ ...book, title: e.target.value })}
           variant="outlined"
           error={book.title.length == 0}
         />
-        <Stack direction="row"  sx={{ width: '100%' }} spacing={2}>
+        <Stack direction="row" sx={{ width: "100%" }} spacing={2}>
           <TextField
             fullWidth
             label="ISBN"
             multiline
             rows={1}
             value={book.isbn}
-            onChange={(e) => setBook({...book, isbn: e.target.value})}
+            onChange={(e) => setBook({ ...book, isbn: e.target.value })}
             error={!isBookISBNValid}
             variant="outlined"
           />
@@ -124,32 +126,37 @@ const EditBook: React.FC<EditBookProps> = ({ create }) => {
             }}
           />
         </Stack>
-        
+
         <TextField
           label="Description"
           fullWidth
           multiline
           rows={6}
           value={book.description}
-          onChange={(e) => setBook({...book, description: e.target.value})}
+          onChange={(e) => setBook({ ...book, description: e.target.value })}
           variant="outlined"
         />
 
-        <Stack direction="row"  sx={{ width: '100%' }} spacing={2}>
+        <Stack direction="row" sx={{ width: "100%" }} spacing={2}>
           <TextField
             fullWidth
             label="Genre"
             multiline
             rows={1}
             value={book.genre}
-            onChange={(e) => setBook({...book, genre: e.target.value})}
+            onChange={(e) => setBook({ ...book, genre: e.target.value })}
             variant="outlined"
           />
           <TextField
             label="Number of pages"
             type="number"
             value={book.pageCount}
-            onChange={(e) => setBook({...book, pageCount: Math.max(Number(e.target.value), 1) })}
+            onChange={(e) =>
+              setBook({
+                ...book,
+                pageCount: Math.max(Number(e.target.value), 1),
+              })
+            }
           />
         </Stack>
 
@@ -168,61 +175,60 @@ const EditBook: React.FC<EditBookProps> = ({ create }) => {
           <ListSubheader sx={{ height: "38px", paddingY: "3px" }}>
             <Box
               sx={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
             >
-                <Typography>Authors</Typography>
-                <Button
-                  size="small"
-                  variant="contained"
-                  onClick={() => setSelectAuthor(true)}
-                >
-                  Add
-                </Button>
+              <Typography>Authors</Typography>
+              <Button
+                size="small"
+                variant="contained"
+                onClick={() => setSelectAuthor(true)}
+              >
+                Add
+              </Button>
             </Box>
           </ListSubheader>
           <Divider />
           {book.authors.map((author, index) => (
-          <ListItem
-            key={index}
-            sx={{
-              backgroundColor: index % 2 === 0 ? "grey.100" : "white",
-              '&:hover': {
-                backgroundColor: "grey.200",
-              },
-              height: "40px",
-            }}
-            secondaryAction={
-              <Chip
-                label="-"
-                onClick={() => handleRemoveAuthor(index)}
-              >
-              </Chip>
-            }
-          >
-            <ListItemText primary={author.name}/>
-          </ListItem>
+            <ListItem
+              key={index}
+              sx={{
+                backgroundColor: index % 2 === 0 ? "grey.100" : "white",
+                "&:hover": {
+                  backgroundColor: "grey.200",
+                },
+                height: "40px",
+              }}
+              secondaryAction={
+                <Chip
+                  label="-"
+                  onClick={() => handleRemoveAuthor(index)}
+                ></Chip>
+              }
+            >
+              <ListItemText primary={author.name} />
+            </ListItem>
           ))}
         </List>
 
-        <Button sx={{ mt: "10px" }}
+        <Button
+          sx={{ mt: "10px" }}
           variant="contained"
-          disabled={!isBookISBNValid || (book.title.length == 0)}
+          disabled={!isBookISBNValid || book.title.length == 0}
         >
-          { create ? "Create" : "Save"}
+          {create ? "Create" : "Save"}
         </Button>
-        
-        <AuthorDialog open={selectAuthor} onClose={handleCloseAuthorDialog} />
 
+        <AuthorDialog open={selectAuthor} onClose={handleCloseAuthorDialog} />
       </Box>
     </Container>
   );
 };
 
 function isValidISBN(isbn: string): boolean {
-  const cleaned = isbn.replace(/[-\s]/g, ''); // Remove hyphens and spaces
+  const cleaned = isbn.replace(/[-\s]/g, ""); // Remove hyphens and spaces
 
   if (cleaned.length === 10) {
     return isValidISBN10(cleaned);
@@ -240,7 +246,7 @@ function isValidISBN10(isbn: string): boolean {
   for (let i = 0; i < 9; i++) {
     sum += parseInt(isbn[i]) * (10 - i);
   }
-  sum += isbn[9] === 'X' ? 10 : parseInt(isbn[9]);
+  sum += isbn[9] === "X" ? 10 : parseInt(isbn[9]);
   return sum % 11 === 0;
 }
 

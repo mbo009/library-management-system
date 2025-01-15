@@ -1,17 +1,22 @@
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
 from elasticsearch_dsl.query import MultiMatch
-from helloworld.documents import BookDocument
+from api.documents import BookDocument
 from django.contrib.auth import authenticate, login
-from helloworld.serializers import BookSerializer, AuthorSerializer
+from api.serializers import BookSerializer, AuthorSerializer, BookQueueSerializer
+from .utils.kafka_producer import send_kafka_message
 from django.db import transaction
-import json
-import logging
 from django.contrib.auth.hashers import make_password
-from helloworld.models import User, LibrarianKeys, Book, Author
+from api.models import User, LibrarianKeys, Book, Author
 from rest_framework.generics import ListAPIView, RetrieveAPIView
 from rest_framework import status
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from django.conf import settings
+import json
+import logging
 
+logger = logging.getLogger(__name__)
 
 
 class BookListView(ListAPIView):
@@ -33,7 +38,113 @@ class AuthorDetailView(RetrieveAPIView):
     queryset = Author.objects.all()
     serializer_class = AuthorSerializer
 
-logger = logging.getLogger(__name__)
+
+class CreateBookView(APIView):
+    def post(self, request, *args, **kwargs):
+        # Deserialize the incoming data
+        serializer = BookSerializer(data=request.data)
+        if serializer.is_valid():
+            # Save the book
+            book = serializer.save()
+
+            # Send a Kafka event
+            event_data = {
+                "id": book.bookID,
+                "title": book.title,
+                "author": book.author.full_name if book.author else None,
+                "genre": book.genre.name if book.genre else None,
+                "language": book.language.name if book.language else None,
+                "published_date": str(book.published_date),
+            }
+            send_kafka_message(
+                topic=settings.KAFKA_CONFIG["topics"].get("book_created"),
+                key=str(book.bookID),
+                value=event_data,
+            )
+
+            # Return response
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+
+class DeleteBookView(APIView):
+    def delete(self, request, book_id, *args, **kwargs):
+        try:
+            book = Book.objects.get(pk=book_id)
+            book.delete()
+
+            event_data = {
+                "id": book_id,
+                "action": "deleted",
+            }
+            send_kafka_message(
+                topic=settings.KAFKA_CONFIG["topics"].get("book_deleted"),
+                key=str(book_id),
+                value=event_data,
+            )
+
+            return Response({"message": "Book deleted successfully."}, status=status.HTTP_200_OK)
+        except Book.DoesNotExist:
+            return Response(
+                {"error": "Book not found."}, status=status.HTTP_404_NOT_FOUND
+            )
+    
+
+class CreateAuthorView(APIView):
+    def post(self, request, *args, **kwargs):
+        logger.info("Received request to create author: %s", request.data)
+
+        serializer = AuthorSerializer(data=request.data)
+        
+        if serializer.is_valid():
+            # Save the author
+            author = serializer.save()
+
+            # Send a Kafka event
+            event_data = {
+                "name": author.name,
+                "bio": author.bio
+            }
+            send_kafka_message(
+                topic=settings.KAFKA_CONFIG["topics"].get("author_created"),
+                key=str(author.name),
+                value=event_data,
+            )
+
+            logger.info("Author created successfully: %s", author.name)
+
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+        # Log validation errors
+        logger.error("Author creation failed, validation errors: %s", serializer.errors)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class ReserveBook(APIView):
+    def post(self, request, *args, **kwargs):
+        serializer = BookQueueSerializer(data=request.data)
+        if serializer.is_valid():
+            try:
+                with transaction.atomic():
+                    book_queue = serializer.save()
+                    event_data = {
+                        "id": book_queue.book_queue_id,
+                        "user": book_queue.user.id,
+                        "book": book_queue.book.bookID,
+                        "queue_date": str(book_queue.queue_date),
+                        "turn": book_queue.turn,
+                    }
+                    send_kafka_message(
+                        topic=settings.KAFKA_CONFIG["topics"].get("reservation_created"),
+                        key=str(book_queue.book_queue_id),
+                        value=event_data,
+                    )
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+            except Exception as e:
+                return Response(
+                    {"error": "Reservation could not be completed.", "details": str(e)},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                )
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 def find_book(request):
     query = request.GET.get("query")
@@ -68,14 +179,12 @@ def sign_in(request):
         return JsonResponse({"error": "Only POST requests are allowed"}, status=405)
 
     try:
-        # Parse request body
         data = json.loads(request.body.decode("utf-8"))
         email = data.get("email")
         password = data.get("password_hash")
 
         logger.info(f"Received sign-in request for email/phone: {email}")
 
-        # Look for user by email or phone number
         user = User.objects.filter(email=email).first()
         if not user:
             logger.warning(f"User not found with email: {email}. Trying phone number...")
