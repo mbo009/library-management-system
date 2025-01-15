@@ -25,13 +25,13 @@ def process_inventory_update(event):
             inventory.save()
     except Exception as e:
         print(f"Error processing inventory update: {e}")
-        
-        
+
+
 def process_author_creation(event):
     try:
         author_name= event.get("name")
         with transaction.atomic():
-            logger.info(author_name)
+            logger.info(f"xdd: {author_name}")
     except Exception as e:
         logger.error(f"Error processing author creation: {e}")
         print(f"Error processing inventory update: {e}")

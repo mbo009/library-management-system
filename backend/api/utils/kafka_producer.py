@@ -37,9 +37,9 @@ if os.getenv("SERVICE_ROLE") == "backend":
                 callback=delivery_report
             )
             producer.flush()  # Ensure the message is delivered before returning
-            print(f"Message sent to Kafka topic '{topic}': {value}")
+            logger.info(f"Message sent to Kafka topic '{topic}': {value}")
         except Exception as e:
-            print(f"Error sending message to Kafka topic '{topic}': {e}")
+            logger.info(f"Error sending message to Kafka topic '{topic}': {e}")
 
 else:
     producer = None
