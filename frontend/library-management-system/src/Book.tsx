@@ -22,42 +22,55 @@ import transition from "./utils/transition";
 interface Author {
   id: number;
   name: string;
-  bio: null;
+  bio: string;
 }
 
 
 interface Book {
-    id: number;
-    isbn: string;
+    bookID: number;
+    authors: Array<Author>;
+    genre_name: string;
+    language_name: string;
+    language_shortcut: string;
     title: string;
     description: string;
-    genre: string;
-    authors: Array<Author>;
+    isbn: string;
     published_date: string;
     page_count: number;
+    created_at: string;
+    updated_at: string;
+    genre: number;
+    language: number;
 }
 
-function initBook(): Book {
-    return {
-        id: 0,
-        isbn: "",
-        title: "",
-        description: "",
-        genre: "",
-        authors: [],
-        published_date: null,
-        page_count: 1,
-    };
-}
 
 
 const Book = () => {
-  const [book, setBook] = useState<Book>(initBook());
+  const [book, setBook] = useState<Book | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const bookID = searchParams.get("book_id");
 
   useEffect(() => {
 
+    const fetchBook = async () => {
+      try {
+        const response = await fetch(`http://localhost:8000/api/book/${bookID}`);
+
+        if (response.ok) {
+          setBook(await response.json());
+        }
+        else {
+          alert("Failed to fetch books");
+        }
+      } 
+      catch (error) {
+        alert("Failed to fetch books " + error);
+      }
+    }
+
+    fetchBook();
+
+    /*
     setBook({
       id: 5,
       authors: [{id:5, name: "Mark Twain", bio: null}],
@@ -67,10 +80,11 @@ const Book = () => {
       published_date: "2025-14-01",
       page_count:1,
       genre:"Fiction",
-    })
+    })*/
   }, []);
 
-  const available: boolean = false;
+  if (book == null)
+    return <>Loading...</>
 
   return (
     <Container maxWidth="sm" sx={{ paddingY: 5 }}>
@@ -99,7 +113,6 @@ const Book = () => {
             width: "100%",
           }}
           component="ul"
-          flexDirection="row" 
         >
           {book.authors.map((author, index) => {
             return (
@@ -124,29 +137,33 @@ const Book = () => {
             <Typography>
               <b>ISBN: </b> {book.isbn}
             </Typography>
-
-            <Button sx={{ width: "70%", ml: "20px", mt: "100px" }} variant="contained" disabled={!available}>
-              Borrow
-            </Button>
+            <Typography>
+              <b>Language: </b> {book.language_name + " (" + book.language_shortcut + ")"}
+            </Typography>
 
           </Box>
           <Box flex={1} textAlign="left">
-            <Typography>
-              <b>Genre: </b> {book.genre}
+            <Typography sx={{ textTransform: 'capitalize' }}>
+              <b>Genre: </b> {book.genre_name}
             </Typography>
             <Typography>
               <b>Pages: </b> {book.page_count}
             </Typography>
-
-            <Button sx={{ width: "70%", ml: "20px", mt: "100px" }} variant="contained">
-              Reserve
-            </Button>
-
           </Box>
         </Box>
 
-      
-
+        <Box display="flex" justifyContent="space-between" width="100%" gap={2}>
+          <Box flex={1} alignItems="center" justifyContent="center" >     
+            <Button sx={{ width: "70%", ml: "20px", mt: "100px" }} variant="contained">
+              Borrow
+            </Button>
+          </Box>
+          <Box flex={1} alignItems="center" >
+            <Button sx={{ width: "70%", ml: "20px", mt: "100px" }} variant="contained">
+              Reserve
+            </Button>
+          </Box>
+        </Box>
 
       </Box>
     </Container>

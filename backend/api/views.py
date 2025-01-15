@@ -3,12 +3,13 @@ from django.http import JsonResponse
 from elasticsearch_dsl.query import MultiMatch
 from api.documents import BookDocument
 from django.contrib.auth import authenticate, login
-from api.serializers import BookSerializer, AuthorSerializer, BookQueueSerializer
+from api.serializers import BookSerializer, AuthorSerializer, BookQueueSerializer, LanguageSerializer, GenreSerializer
+from api.serializers import CreateUpdateBookSerializer
 from .utils.kafka_producer import send_kafka_message
 from django.db import transaction
 from django.contrib.auth.hashers import make_password
-from api.models import User, LibrarianKeys, Book, Author
-from rest_framework.generics import ListAPIView, RetrieveAPIView
+from api.models import User, LibrarianKeys, Book, Author, Language, Genre
+from rest_framework.generics import ListAPIView, RetrieveAPIView, CreateAPIView, UpdateAPIView
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -39,10 +40,32 @@ class AuthorDetailView(RetrieveAPIView):
     serializer_class = AuthorSerializer
 
 
+class LanguageListView(ListAPIView):
+    queryset = Language.objects.all()
+    serializer_class = LanguageSerializer
+
+
+class GenreListView(ListAPIView):
+    queryset = Genre.objects.all()
+    serializer_class = GenreSerializer
+
+
+
+class BookCreateView(CreateAPIView):
+    queryset = Book.objects.all()
+    serializer_class = CreateUpdateBookSerializer
+
+
+class BookUpdateView(UpdateAPIView):
+    queryset = Book.objects.all()
+    serializer_class = CreateUpdateBookSerializer
+
+
+
 class CreateBookView(APIView):
     def post(self, request, *args, **kwargs):
         # Deserialize the incoming data
-        serializer = BookSerializer(data=request.data)
+        serializer = CreateUpdateBookSerializer(data=request.data)
         if serializer.is_valid():
             # Save the book
             book = serializer.save()

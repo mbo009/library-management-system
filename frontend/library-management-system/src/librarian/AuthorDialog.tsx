@@ -15,6 +15,7 @@ import {
 interface Author {
   id: number;
   name: string;
+  bio: string;
 }
 
 interface AuthorDialogProps {
@@ -27,21 +28,25 @@ const AuthorDialog: React.FC<AuthorDialogProps> = ({ open, onClose }) => {
   const [allAuthors, setAllAuthors] = useState<Array<Author>>([]);
 
   useEffect(() => {
-    
-    const fetchedAuthors: Array<Author> = [
-        { id: 1, name: "Author #1" },
-        { id: 2, name: "Author #2" },
-        { id: 3, name: "Author #3" },
-        { id: 4, name: "Author #4" },
-        { id: 5, name: "Author #5" },
-        { id: 6, name: "Author #6" },
-        { id: 7, name: "Author #7" },
-        { id: 8, name: "Author #8" },
-        { id: 9, name: "Author #9" },
-        { id: 10, name: "Author #10" },
-    ]
 
-    setAllAuthors(fetchedAuthors);
+    const fetchAuthors = async () => {
+      try {
+        const response = await fetch(`http://localhost:8000/api/authors`);
+
+        if (response.ok) {
+          setAllAuthors(await response.json());
+        }
+        else {
+          alert("Failed to fetch book details");
+        }
+      } 
+      catch (error) {
+        alert("Failed to fetch book details " + error);
+      }
+    }
+    
+    fetchAuthors();
+
   }, []);
 
   const filteredAuthors = allAuthors.filter((author) =>
