@@ -10,6 +10,7 @@ import {
   DialogActions,
   Button,
   TextField,
+  Typography,
 } from '@mui/material';
 
 interface Author {
@@ -58,9 +59,9 @@ const AuthorDialog: React.FC<AuthorDialogProps> = ({ open, onClose }) => {
   };
 
   return (
-    <Dialog open={open} onClose={() => onClose()} sx={{maxHeight: "80vh"}} maxWidth="sm" fullWidth>
+    <Dialog open={open} onClose={() => onClose()} maxWidth="sm" fullWidth>
       <DialogTitle>Select an Author</DialogTitle>
-      <DialogContent>
+      <DialogContent sx={{ minHeight: "70vh", maxHeight: "70vh", mb: "20px" }}>
         <TextField
           fullWidth
           margin="normal"
@@ -68,22 +69,29 @@ const AuthorDialog: React.FC<AuthorDialogProps> = ({ open, onClose }) => {
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
-        <List>
-          {filteredAuthors.map((author, index) => (
-            <ListItem 
-                key={author.id}
-                sx={{
-                    height: "50px",
-                }}
-            >
-              <ListItemButton sx={{ backgroundColor: index % 2 === 0 ? "grey.100" : "white" }} onClick={() => handleSelect(author)}>
-                <ListItemText primary={author.name} />
-              </ListItemButton>
-            </ListItem>
-          ))}
-        </List>
+        {filteredAuthors.length > 0 ? (
+          <List>
+            {filteredAuthors.map((author, index) => (
+              <ListItem 
+                  key={author.id}
+                  sx={{
+                      height: "50px",
+                  }}
+              >
+                <ListItemButton sx={{ backgroundColor: index % 2 === 0 ? "grey.100" : "white" }} onClick={() => handleSelect(author)}>
+                  <ListItemText primary={author.name} />
+                </ListItemButton>
+              </ListItem>
+            ))}
+          </List>
+        ) : (
+          <Typography sx={{ mt: "30px", color: "#a0a0a0" }}>
+            No authors have been found.
+          </Typography>
+        )}
       </DialogContent>
       <DialogActions>
+        <Button onClick={() => window.open(`${window.location.origin}/librarian/new_author`)}>Create new author</Button>
         <Button onClick={() => onClose()}>Cancel</Button>
       </DialogActions>
     </Dialog>

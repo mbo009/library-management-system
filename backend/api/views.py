@@ -50,7 +50,6 @@ class GenreListView(ListAPIView):
     serializer_class = GenreSerializer
 
 
-
 class BookCreateView(CreateAPIView):
     queryset = Book.objects.all()
     serializer_class = CreateUpdateBookSerializer
@@ -59,6 +58,16 @@ class BookCreateView(CreateAPIView):
 class BookUpdateView(UpdateAPIView):
     queryset = Book.objects.all()
     serializer_class = CreateUpdateBookSerializer
+
+
+class AuthorCreateView(CreateAPIView):
+    queryset = Author.objects.all()
+    serializer_class = AuthorSerializer
+
+
+class AuthorUpdateView(UpdateAPIView):
+    queryset = Author.objects.all()
+    serializer_class = AuthorSerializer
 
 
 
