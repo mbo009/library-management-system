@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import {
   TextField,
   FormControl,
@@ -75,7 +75,7 @@ const EditBook: React.FC<EditBookProps> = ({ create }) => {
   const [languages, setLanguages] = useState<Array<Language>>([]);
   const [genres, setGenres] = useState<Array<Genre>>([]);
 
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams, _] = useSearchParams();
   const bookID = searchParams.get("book_id");
 
   const [selectAuthor, setSelectAuthor] = useState(false);
@@ -87,7 +87,16 @@ const EditBook: React.FC<EditBookProps> = ({ create }) => {
         const response = await fetch(`http://localhost:8000/api/book/${bookID}`);
 
         if (response.ok) {
-          setBook(await response.json());
+          const book = await response.json();
+
+          if (book.genre === null) {
+            book.genre = 0;
+          }
+          if (book.language === null) {
+            book.language = 0;
+          }
+
+          setBook(book);
         }
         else {
           alert("Failed to fetch book details");
@@ -100,7 +109,7 @@ const EditBook: React.FC<EditBookProps> = ({ create }) => {
 
     const fetchLanguages = async () => {
       try {
-        const response = await fetch(`http://localhost:8000/api/languages`);
+        const response = await fetch(`http://localhost:8000/api/languages/`);
 
         if (response.ok) {
           setLanguages(await response.json());
@@ -116,7 +125,7 @@ const EditBook: React.FC<EditBookProps> = ({ create }) => {
 
     const fetchGenres = async () => {
       try {
-        const response = await fetch(`http://localhost:8000/api/genres`);
+        const response = await fetch(`http://localhost:8000/api/genres/`);
 
         if (response.ok) {
           setGenres(await response.json());
@@ -263,17 +272,6 @@ const EditBook: React.FC<EditBookProps> = ({ create }) => {
         />
 
         <Stack direction="row" sx={{ width: "100%" }} spacing={2}>
-          {/*
-          <TextField
-            fullWidth
-            label="Genre"
-            multiline
-            rows={1}
-            value={book.genre}
-            onChange={(e) => setBook({ ...book, genre: e.target.value })}
-            variant="outlined"
-          />*/}
-
           <FormControl fullWidth>
             <InputLabel id="genre-select-label">Genre</InputLabel>
             <Select

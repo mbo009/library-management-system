@@ -1,5 +1,11 @@
-from django.urls import path
+from django.urls import path, include
 from . import views
+from rest_framework.routers import DefaultRouter
+
+#router = DefaultRouter()
+#router.register(r'genres', views.GenreViewSet)
+#router.register(r'languages', views.LanguageViewSet)
+
 
 urlpatterns = [
     path("find_book/", views.find_book, name="find_book"),
@@ -12,10 +18,12 @@ urlpatterns = [
     path('author/<int:pk>', views.AuthorDetailView.as_view(), name='author_detail'),
     path('create-author/', views.CreateAuthorView.as_view(), name='create_author'),
     path('reserve-book/', views.ReserveBook.as_view(), name='reserve_book'),
-    path('languages', views.LanguageListView.as_view(), name='language_list'),
-    path('genres', views.GenreListView.as_view(), name='genre_list'),
     path('create_book/', views.BookCreateView.as_view(), name='create_book'),
     path('update_book/<int:pk>/', views.BookUpdateView.as_view(), name='update_book'),
     path('create_author/', views.AuthorCreateView.as_view(), name='create_author'),
     path('update_author/<int:pk>/', views.AuthorUpdateView.as_view(), name='update_author'),
+    path('genres/', views.GenreViewSet.as_view({'get': 'list', 'post': 'create'}), name='genre-list'),
+    path('genres/<int:pk>/', views.GenreViewSet.as_view({'get': 'retrieve', 'put': 'update', 'delete': 'destroy'}), name='genre-detail'),
+    path('languages/', views.LanguageViewSet.as_view({'get': 'list', 'post': 'create'}), name='language-list'),
+    path('languages/<int:pk>/', views.LanguageViewSet.as_view({'get': 'retrieve', 'put': 'update', 'delete': 'destroy'}), name='language-detail'),
 ]

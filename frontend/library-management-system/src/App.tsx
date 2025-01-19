@@ -7,6 +7,8 @@ import { AnimatePresence } from "framer-motion";
 import WrappedHome from "./Home.tsx";
 import EditBook from "./librarian/Book.tsx";
 import EditAuthor from "./librarian/Author.tsx";
+import EditGenres from "./librarian/Genres.tsx";
+import EditLanguages from "./librarian/Languages.tsx";
 import Book from "./Book.tsx";
 
 
@@ -24,6 +26,8 @@ function App() {
           <Route path="/librarian/book" element={<EditBook create={false} />} />
           <Route path="/librarian/new_author" element={<EditAuthor create={true} />} />
           <Route path="/librarian/author" element={<EditAuthor create={false} />} />
+          <Route path="/librarian/genres" element={<EditGenres />} />
+          <Route path="/librarian/languages" element={<EditLanguages />} />
         </Routes>
       </AnimatePresence>
     </ThemeProvider>

@@ -52,10 +52,12 @@ class BookQueueSerializer(serializers.ModelSerializer):
 class LanguageSerializer(serializers.ModelSerializer):
     class Meta:
         model = Language
-        fields = "__all__"
+        fields = ['languageID', 'name', 'shortcut']
+        extra_kwargs = {'languageID': {'read_only': True}}
 
 
 class GenreSerializer(serializers.ModelSerializer):
     class Meta:
         model = Genre
-        fields = "__all__"
+        fields = ['genreID', 'name']
+        extra_kwargs = {'genreID': {'read_only': True}}

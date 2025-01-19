@@ -10,7 +10,7 @@ from django.db import transaction
 from django.contrib.auth.hashers import make_password
 from api.models import User, LibrarianKeys, Book, Author, Language, Genre
 from rest_framework.generics import ListAPIView, RetrieveAPIView, CreateAPIView, UpdateAPIView
-from rest_framework import status
+from rest_framework import status, viewsets
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from django.conf import settings
@@ -40,12 +40,12 @@ class AuthorDetailView(RetrieveAPIView):
     serializer_class = AuthorSerializer
 
 
-class LanguageListView(ListAPIView):
+class LanguageViewSet(viewsets.ModelViewSet):
     queryset = Language.objects.all()
     serializer_class = LanguageSerializer
 
 
-class GenreListView(ListAPIView):
+class GenreViewSet(viewsets.ModelViewSet):
     queryset = Genre.objects.all()
     serializer_class = GenreSerializer
 

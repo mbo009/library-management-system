@@ -1,20 +1,13 @@
-import React, { useEffect, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
-  TextField,
   Box,
   Button,
   Paper,
   Typography,
-  Stack,
   Container,
   Divider,
   Chip,
-  List,
-  ListItem,
-  ListSubheader,
-  ListItemText,
-  ListItemButton,
 } from "@mui/material";
 import transition from "./utils/transition";
 
@@ -47,7 +40,7 @@ interface Book {
 
 const Book = () => {
   const [book, setBook] = useState<Book | null>(null);
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams, _] = useSearchParams();
   const bookID = searchParams.get("book_id");
 
   useEffect(() => {
@@ -70,17 +63,6 @@ const Book = () => {
 
     fetchBook();
 
-    /*
-    setBook({
-      id: 5,
-      authors: [{id:5, name: "Mark Twain", bio: null}],
-      title:"The Adventures of Huckleberry Finn",
-      description: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.",
-      isbn:"9780486280615",
-      published_date: "2025-14-01",
-      page_count:1,
-      genre:"Fiction",
-    })*/
   }, []);
 
   if (book == null)
@@ -138,7 +120,7 @@ const Book = () => {
               <b>ISBN: </b> {book.isbn}
             </Typography>
             <Typography>
-              <b>Language: </b> {book.language_name + " (" + book.language_shortcut + ")"}
+              <b>Language: </b> {book.language_name ? (book.language_name + " (" + book.language_shortcut + ")") : ""}
             </Typography>
 
           </Box>
