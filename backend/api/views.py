@@ -3,13 +3,14 @@ from django.http import JsonResponse
 from elasticsearch_dsl.query import MultiMatch
 from api.documents import BookDocument, UserDocument
 from django.contrib.auth import authenticate, login
-from api.serializers import BookSerializer, AuthorSerializer, BookQueueSerializer, UserSerializer
+from api.serializers import BookSerializer, AuthorSerializer, BookQueueSerializer, LanguageSerializer, GenreSerializer, UserSerializer
+from api.serializers import CreateUpdateBookSerializer
 from .utils.kafka_producer import send_kafka_message
 from django.db import transaction
 from django.contrib.auth.hashers import make_password
-from api.models import User, LibrarianKeys, Book, Author
-from rest_framework.generics import ListAPIView, RetrieveAPIView
-from rest_framework import status
+from api.models import User, LibrarianKeys, Book, Author, Language, Genre
+from rest_framework.generics import ListAPIView, RetrieveAPIView, CreateAPIView, UpdateAPIView
+from rest_framework import status, viewsets
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from django.conf import settings 
@@ -39,10 +40,41 @@ class AuthorDetailView(RetrieveAPIView):
     serializer_class = AuthorSerializer
 
 
+class LanguageViewSet(viewsets.ModelViewSet):
+    queryset = Language.objects.all()
+    serializer_class = LanguageSerializer
+
+
+class GenreViewSet(viewsets.ModelViewSet):
+    queryset = Genre.objects.all()
+    serializer_class = GenreSerializer
+
+
+class BookCreateView(CreateAPIView):
+    queryset = Book.objects.all()
+    serializer_class = CreateUpdateBookSerializer
+
+
+class BookUpdateView(UpdateAPIView):
+    queryset = Book.objects.all()
+    serializer_class = CreateUpdateBookSerializer
+
+
+class AuthorCreateView(CreateAPIView):
+    queryset = Author.objects.all()
+    serializer_class = AuthorSerializer
+
+
+class AuthorUpdateView(UpdateAPIView):
+    queryset = Author.objects.all()
+    serializer_class = AuthorSerializer
+
+
+
 class CreateBookView(APIView):
     def post(self, request, *args, **kwargs):
         # Deserialize the incoming data
-        serializer = BookSerializer(data=request.data)
+        serializer = CreateUpdateBookSerializer(data=request.data)
         if serializer.is_valid():
             # Save the book
             book = serializer.save()
@@ -65,7 +97,7 @@ class CreateBookView(APIView):
             # Return response
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
+
 
 class DeleteBookView(APIView):
     def delete(self, request, book_id, *args, **kwargs):
@@ -88,14 +120,14 @@ class DeleteBookView(APIView):
             return Response(
                 {"error": "Book not found."}, status=status.HTTP_404_NOT_FOUND
             )
-    
+
 
 class CreateAuthorView(APIView):
     def post(self, request, *args, **kwargs):
         logger.info("Received request to create author: %s", request.data)
 
         serializer = AuthorSerializer(data=request.data)
-        
+
         if serializer.is_valid():
             # Save the author
             author = serializer.save()
@@ -128,16 +160,17 @@ class ReserveBook(APIView):
                     book_queue = serializer.save()
                     event_data = {
                         "id": book_queue.book_queue_id,
-                        "user": book_queue.user.id,
+                        "user": book_queue.user.user_id,
                         "book": book_queue.book.bookID,
                         "queue_date": str(book_queue.queue_date),
                         "turn": book_queue.turn,
                     }
-                    send_kafka_message(
-                        topic=settings.KAFKA_CONFIG["topics"].get("reservation_created"),
-                        key=str(book_queue.book_queue_id),
-                        value=event_data,
-                    )
+                    if int(book_queue.turn) == 0:
+                        send_kafka_message(
+                            topic=settings.KAFKA_CONFIG["topics"].get("reservation_created"),
+                            key=str(book_queue.book_queue_id),
+                            value=event_data,
+                        )
                 return Response(serializer.data, status=status.HTTP_201_CREATED)
             except Exception as e:
                 return Response(

@@ -14,7 +14,7 @@ class KafkaConsumer:
         self.consumer = Consumer({
             'bootstrap.servers': self.bootstrap_servers,
             'group.id': self.group_id,
-            'auto.offset.reset': 'earliest',  
+            'auto.offset.reset': 'earliest',
         })
 
     def start(self, message_processor):
@@ -30,10 +30,10 @@ class KafkaConsumer:
                 break
 
             decoded_message = json.loads(msg.value().decode('utf-8'))
-            logger.info("chuj", decoded_message)
+            logger.info("test", decoded_message)
             message_processor(decoded_message)
-            
-            
+
+
 
     def start_in_thread(self, message_processor):
         # thread = Thread(target=self.start, args=(message_processor,))

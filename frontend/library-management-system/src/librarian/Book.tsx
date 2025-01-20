@@ -1,6 +1,11 @@
 import React, { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   TextField,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
   Box,
   Button,
   Typography,
@@ -20,29 +25,44 @@ import AuthorDialog from "./AuthorDialog";
 interface Author {
   id: number;
   name: string;
+  bio: string;
 }
 
+
 interface Book {
-  id: number;
-  isbn: string;
+  bookID: number | null;
+  authors: Array<Author>;
   title: string;
   description: string;
-  genre: string;
-  authors: Array<Author>;
-  publishedDate: Date | null;
-  pageCount: number;
+  isbn: string;
+  published_date: string | null;
+  page_count: number;
+  genre: number;
+  language: number;
+}
+
+interface Language {
+  languageID: number;
+  name: string;
+  shortcut: string;
+}
+
+interface Genre {
+  genreID: number;
+  name: string;
 }
 
 function initBook(): Book {
   return {
-    id: 0,
-    isbn: "",
-    title: "",
-    description: "",
-    genre: "",
-    authors: [],
-    publishedDate: null,
-    pageCount: 1,
+      bookID: null,
+      isbn: "",
+      title: "",
+      description: "",
+      genre: 0,
+      authors: [],
+      published_date: null,
+      page_count: 1,
+      language: 0,
   };
 }
 
@@ -52,21 +72,100 @@ type EditBookProps = {
 
 const EditBook: React.FC<EditBookProps> = ({ create }) => {
   const [book, setBook] = useState<Book>(initBook());
+  const [languages, setLanguages] = useState<Array<Language>>([]);
+  const [genres, setGenres] = useState<Array<Genre>>([]);
+
+  const [searchParams, _] = useSearchParams();
+  const bookID = searchParams.get("book_id");
 
   const [selectAuthor, setSelectAuthor] = useState(false);
 
-  useEffect(() => {}, []);
+  useEffect(() => {
+
+    const fetchBook = async () => {
+      try {
+        const response = await fetch(`http://localhost:8000/api/book/${bookID}`);
+
+        if (response.ok) {
+          const book = await response.json();
+
+          if (book.genre === null) {
+            book.genre = 0;
+          }
+          if (book.language === null) {
+            book.language = 0;
+          }
+
+          setBook(book);
+        }
+        else {
+          alert("Failed to fetch book details");
+        }
+      } 
+      catch (error) {
+        alert("Failed to fetch book details " + error);
+      }
+    }
+
+    const fetchLanguages = async () => {
+      try {
+        const response = await fetch(`http://localhost:8000/api/languages/`);
+
+        if (response.ok) {
+          setLanguages(await response.json());
+        }
+        else {
+          alert("Failed to fetch languages");
+        }
+      } 
+      catch (error) {
+        alert("Failed to fetch languages " + error);
+      }
+    }
+
+    const fetchGenres = async () => {
+      try {
+        const response = await fetch(`http://localhost:8000/api/genres/`);
+
+        if (response.ok) {
+          setGenres(await response.json());
+        }
+        else {
+          alert("Failed to fetch genres");
+        }
+      } 
+      catch (error) {
+        alert("Failed to fetch genres " + error);
+      }
+    }
+
+    if (!create)
+      fetchBook();
+
+    fetchLanguages();
+    fetchGenres();
+
+  }, []);
+
+  if (!create && book.bookID === null)
+      return <>Loading...</>;
+
+  console.log(book);
 
   const handlePublishedDateChange = (
-    _e: React.ChangeEvent<HTMLInputElement>
+    e: React.ChangeEvent<HTMLInputElement>
   ) => {
-    // const date = e.target.value;
-    setBook({ ...book, publishedDate: new Date() });
+    const date = e.target.value;
+    setBook({ ...book, published_date: date });
   };
 
   const handleCloseAuthorDialog = (author?: Author) => {
     if (author) {
-      setBook({ ...book, authors: [...book.authors, author] });
+
+      const matchingAuthor = book.authors.find((a) => a.id == author.id);
+      if (matchingAuthor === undefined) {
+        setBook({ ...book, authors: [...book.authors, author] });
+      }
     }
     setSelectAuthor(false);
   };
@@ -75,6 +174,41 @@ const EditBook: React.FC<EditBookProps> = ({ create }) => {
     const authors = book.authors.filter((_, index) => index !== indexToRemove);
     setBook({ ...book, authors: authors });
   };
+
+  const handleSaveBook = async () => {
+    var requestBody = {
+      authors: book.authors.map((author) => author.id),
+      title: book.title,
+      description: book.description,
+      isbn: book.isbn,
+      published_date: book.published_date,
+      page_count: book.page_count,
+      genre:  book.genre,
+      language: book.language,
+    };
+
+    let api, method;
+    if (create) {
+      api = "http://localhost:8000/api/create_book/";
+      method = "POST";
+    }
+    else {
+      api = `http://localhost:8000/api/update_book/${book.bookID}/`;
+      method = "PUT";
+    }
+
+    const response = await fetch(api, {
+      method: method, 
+      body: JSON.stringify(requestBody),
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (response.ok) {
+      console.log("SAVED");
+    }
+  }
 
   const isBookISBNValid = isValidISBN(book.isbn);
 
@@ -119,7 +253,7 @@ const EditBook: React.FC<EditBookProps> = ({ create }) => {
             type="date"
             margin="normal"
             color="secondary"
-            value={book.publishedDate?.toISOString().slice(0, 10)}
+            value={book.published_date !== null ? book.published_date : ""}
             onChange={handlePublishedDateChange}
             InputLabelProps={{
               shrink: true,
@@ -138,27 +272,48 @@ const EditBook: React.FC<EditBookProps> = ({ create }) => {
         />
 
         <Stack direction="row" sx={{ width: "100%" }} spacing={2}>
-          <TextField
-            fullWidth
-            label="Genre"
-            multiline
-            rows={1}
-            value={book.genre}
-            onChange={(e) => setBook({ ...book, genre: e.target.value })}
-            variant="outlined"
-          />
+          <FormControl fullWidth>
+            <InputLabel id="genre-select-label">Genre</InputLabel>
+            <Select
+              labelId="genre-select-label"
+              value={book.genre}
+              label="Genre"
+              onChange={(e) => setBook({ ...book, genre: Number(e.target.value) })}
+            >
+              <MenuItem key={0} value={0}>---</MenuItem>
+              {genres.map((genre, index) => (
+                <MenuItem key={index+1} value={genre.genreID}>{genre.name}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
           <TextField
             label="Number of pages"
             type="number"
-            value={book.pageCount}
+            value={book.page_count}
             onChange={(e) =>
               setBook({
                 ...book,
-                pageCount: Math.max(Number(e.target.value), 1),
+                page_count: Math.max(Number(e.target.value), 1),
               })
             }
           />
         </Stack>
+
+        <FormControl fullWidth>
+          <InputLabel id="language-select-label">Language</InputLabel>
+          <Select
+            labelId="language-select-label"
+            value={book.language}
+            label="Language"
+            onChange={(e) => setBook({ ...book,language: Number(e.target.value) })}
+          >
+            <MenuItem key={0} value={0}>---</MenuItem>
+            {languages.map((language, index) => (
+              <MenuItem key={index+1} value={language.languageID}>{language.name}</MenuItem>
+            ))}
+          </Select>
+        </FormControl>
 
         <List
           sx={{
@@ -217,6 +372,7 @@ const EditBook: React.FC<EditBookProps> = ({ create }) => {
           sx={{ mt: "10px" }}
           variant="contained"
           disabled={!isBookISBNValid || book.title.length == 0}
+          onClick={handleSaveBook}
         >
           {create ? "Create" : "Save"}
         </Button>

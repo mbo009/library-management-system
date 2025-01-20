@@ -10,11 +10,13 @@ import {
   DialogActions,
   Button,
   TextField,
+  Typography,
 } from '@mui/material';
 
 interface Author {
   id: number;
   name: string;
+  bio: string;
 }
 
 interface AuthorDialogProps {
@@ -27,21 +29,25 @@ const AuthorDialog: React.FC<AuthorDialogProps> = ({ open, onClose }) => {
   const [allAuthors, setAllAuthors] = useState<Array<Author>>([]);
 
   useEffect(() => {
-    
-    const fetchedAuthors: Array<Author> = [
-        { id: 1, name: "Author #1" },
-        { id: 2, name: "Author #2" },
-        { id: 3, name: "Author #3" },
-        { id: 4, name: "Author #4" },
-        { id: 5, name: "Author #5" },
-        { id: 6, name: "Author #6" },
-        { id: 7, name: "Author #7" },
-        { id: 8, name: "Author #8" },
-        { id: 9, name: "Author #9" },
-        { id: 10, name: "Author #10" },
-    ]
 
-    setAllAuthors(fetchedAuthors);
+    const fetchAuthors = async () => {
+      try {
+        const response = await fetch(`http://localhost:8000/api/authors`);
+
+        if (response.ok) {
+          setAllAuthors(await response.json());
+        }
+        else {
+          alert("Failed to fetch book details");
+        }
+      } 
+      catch (error) {
+        alert("Failed to fetch book details " + error);
+      }
+    }
+    
+    fetchAuthors();
+
   }, []);
 
   const filteredAuthors = allAuthors.filter((author) =>
@@ -53,9 +59,9 @@ const AuthorDialog: React.FC<AuthorDialogProps> = ({ open, onClose }) => {
   };
 
   return (
-    <Dialog open={open} onClose={() => onClose()} sx={{maxHeight: "80vh"}} maxWidth="sm" fullWidth>
+    <Dialog open={open} onClose={() => onClose()} maxWidth="sm" fullWidth>
       <DialogTitle>Select an Author</DialogTitle>
-      <DialogContent>
+      <DialogContent sx={{ minHeight: "70vh", maxHeight: "70vh", mb: "20px" }}>
         <TextField
           fullWidth
           margin="normal"
@@ -63,22 +69,29 @@ const AuthorDialog: React.FC<AuthorDialogProps> = ({ open, onClose }) => {
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
-        <List>
-          {filteredAuthors.map((author, index) => (
-            <ListItem 
-                key={author.id}
-                sx={{
-                    height: "50px",
-                }}
-            >
-              <ListItemButton sx={{ backgroundColor: index % 2 === 0 ? "grey.100" : "white" }} onClick={() => handleSelect(author)}>
-                <ListItemText primary={author.name} />
-              </ListItemButton>
-            </ListItem>
-          ))}
-        </List>
+        {filteredAuthors.length > 0 ? (
+          <List>
+            {filteredAuthors.map((author, index) => (
+              <ListItem 
+                  key={author.id}
+                  sx={{
+                      height: "50px",
+                  }}
+              >
+                <ListItemButton sx={{ backgroundColor: index % 2 === 0 ? "grey.100" : "white" }} onClick={() => handleSelect(author)}>
+                  <ListItemText primary={author.name} />
+                </ListItemButton>
+              </ListItem>
+            ))}
+          </List>
+        ) : (
+          <Typography sx={{ mt: "30px", color: "#a0a0a0" }}>
+            No authors have been found.
+          </Typography>
+        )}
       </DialogContent>
       <DialogActions>
+        <Button onClick={() => window.open(`${window.location.origin}/librarian/new_author`)}>Create new author</Button>
         <Button onClick={() => onClose()}>Cancel</Button>
       </DialogActions>
     </Dialog>
