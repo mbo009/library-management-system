@@ -1,6 +1,41 @@
 from django_elasticsearch_dsl import Document, fields
 from django_elasticsearch_dsl.registries import registry
-from .models import Book, Author, Genre
+from .models import Book, Author, Genre, User
+
+
+@registry.register_document
+class UserDocument(Document):
+    """
+    Elasticsearch document for User.
+    """
+    
+    borrowed_books = fields.ObjectField(
+        properties={
+            "isbn": fields.TextField(),
+            "title": fields.TextField(),
+            "description": fields.TextField(),
+        }
+    )
+
+    class Index:
+        name = "users"
+
+        settings = {
+            "number_of_shards": 1,
+            "number_of_replicas": 0,
+        }
+
+    class Django:
+        model = User
+        fields = [
+            "first_name",
+            "last_name",
+            "email",
+            "phone_number",
+        ]
+
+    def get_id(self, instance):
+        return instance
 
 
 @registry.register_document

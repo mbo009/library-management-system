@@ -11,7 +11,6 @@ import EditGenres from "./librarian/Genres.tsx";
 import EditLanguages from "./librarian/Languages.tsx";
 import Book from "./Book.tsx";
 
-
 function App() {
   const location = useLocation();
   return (
@@ -19,7 +18,7 @@ function App() {
       <CssBaseline />
       <AnimatePresence mode="wait">
         <Routes location={location} key={location.pathname}>
-          <Route path="/login" element={<Login />} />
+          <Route path="/*" element={<Login />} />
           <Route path="/home" element={<WrappedHome />} />
           <Route path="/book" element={<Book />} />
           <Route path="/librarian/new_book" element={<EditBook create={true} />} />

@@ -1,9 +1,9 @@
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
 from elasticsearch_dsl.query import MultiMatch
-from api.documents import BookDocument
+from api.documents import BookDocument, UserDocument
 from django.contrib.auth import authenticate, login
-from api.serializers import BookSerializer, AuthorSerializer, BookQueueSerializer, LanguageSerializer, GenreSerializer
+from api.serializers import BookSerializer, AuthorSerializer, BookQueueSerializer, LanguageSerializer, GenreSerializer, UserSerializer
 from api.serializers import CreateUpdateBookSerializer
 from .utils.kafka_producer import send_kafka_message
 from django.db import transaction
@@ -13,7 +13,7 @@ from rest_framework.generics import ListAPIView, RetrieveAPIView, CreateAPIView,
 from rest_framework import status, viewsets
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from django.conf import settings
+from django.conf import settings 
 import json
 import logging
 
@@ -204,6 +204,39 @@ def find_book(request):
         return JsonResponse({"message": "No search query provided."}, status=status.HTTP_400_BAD_REQUEST)
 
 
+def find_user(request):
+    if request.method != "GET":
+        return JsonResponse({"error": "Only GET requests are allowed"}, status=405)
+    if not request.user.is_authenticated:
+        return JsonResponse({"error": "User is not authenticated"}, status=401)
+    
+    user = User.objects.get(pk=request.user.user_id)
+    if not user:
+        return JsonResponse("error: User sending request not found in the system", status=404)
+    if not user.is_librarian:
+        return JsonResponse("error: User sending request is not a librarian", status=403)
+
+    try:
+        query = request.GET.get("query")
+        m_query = MultiMatch(
+            query=query,
+            fields=[
+                "first_name",
+                "last_name",
+                "email",
+                "phone_number",
+                "borrowed_books.title",
+            ],
+            fuzziness="AUTO",
+        )
+        users = UserDocument.search().query(m_query).to_queryset()
+        seralizer = UserSerializer(users, many=True)
+        return JsonResponse(seralizer.data, safe=False)
+    except Exception as e:
+        logger.exception("Unexpected error occurred during get user")
+        return JsonResponse({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
 @csrf_exempt
 def sign_in(request):
     logger.info("Received sign-in request")
@@ -348,7 +381,6 @@ def get_user_books(request):
     except Exception as e:
         logger.exception("Unexpected error occurred during get user books")
         return JsonResponse({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
 
 # KAFKA_BOOTSTRAP_SERVERS = os.environ.get('KAFKA_BOOTSTRAP_SERVERS', 'kafka:9092')
 

@@ -182,6 +182,7 @@ const Login: React.FC = () => {
 
       if (tab === 0) {
         localStorage.setItem("user", JSON.stringify(data));
+        console.log("User: ", data);
         navigate("/home");
       } else if (tab === 1) {
         alert(
