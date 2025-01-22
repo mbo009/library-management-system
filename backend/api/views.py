@@ -1,4 +1,5 @@
 from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
 from django.http import JsonResponse
 from elasticsearch_dsl.query import MultiMatch
 from api.documents import BookDocument, UserDocument
@@ -15,7 +16,7 @@ from api.serializers import CreateUpdateBookSerializer
 from .utils.kafka_producer import send_kafka_message
 from django.db import transaction
 from django.contrib.auth.hashers import make_password
-from api.models import User, LibrarianKeys, Book, Author, Language, Genre
+from api.models import User, LibrarianKeys, Book, Author, Language, Genre, BookQueue
 from rest_framework.generics import (
     ListAPIView,
     RetrieveAPIView,
@@ -25,6 +26,7 @@ from rest_framework.generics import (
 from rest_framework import status, viewsets
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from rest_framework.decorators import api_view
 from django.conf import settings
 import json
 import logging
@@ -60,6 +62,20 @@ class LanguageViewSet(viewsets.ModelViewSet):
 class GenreViewSet(viewsets.ModelViewSet):
     queryset = Genre.objects.all()
     serializer_class = GenreSerializer
+
+
+class BookQueueView(ListAPIView):
+    serializer_class = BookQueueSerializer
+
+    def get_queryset(self):
+        book_id = self.kwargs['book_id']  # Get the book_id from the URL
+        return BookQueue.objects.filter(book_id=book_id)
+
+    def get(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        if not queryset.exists():
+            return Response({'message': 'No entries found for the given book ID.'}, status=status.HTTP_404_NOT_FOUND)
+        return super().get(request, *args, **kwargs)
 
 
 class BookCreateView(CreateAPIView):
@@ -162,6 +178,7 @@ class CreateAuthorView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+"""
 class ReserveBook(APIView):
     def post(self, request, *args, **kwargs):
         serializer = BookQueueSerializer(data=request.data)
@@ -191,6 +208,36 @@ class ReserveBook(APIView):
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+"""
+
+
+class ReserveBook(APIView):
+    def post(self, request, *args, **kwargs):
+
+        try:
+            book_id = request.data['book_id']
+            user_id = request.user.user_id
+        except Exception as e:
+            return Response(f"Bad request: {e}", status=status.HTTP_400_BAD_REQUEST)
+    	
+        try:
+            event_data = {
+                "book_id": book_id,
+                "user_id": user_id,
+            }
+            send_kafka_message(
+                topic=settings.KAFKA_CONFIG["topics"].get(
+                    "reservation_created"
+                ),
+                key=str(book_id) + ";" + str(user_id),
+                value=event_data,
+            )
+            return Response({}, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            return Response(
+                {"error": "Reservation could not be completed.", "details": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
 
 def find_book(request):

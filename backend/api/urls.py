@@ -27,4 +27,5 @@ urlpatterns = [
     path('genres/<int:pk>/', views.GenreViewSet.as_view({'get': 'retrieve', 'put': 'update', 'delete': 'destroy'}), name='genre-detail'),
     path('languages/', views.LanguageViewSet.as_view({'get': 'list', 'post': 'create'}), name='language-list'),
     path('languages/<int:pk>/', views.LanguageViewSet.as_view({'get': 'retrieve', 'put': 'update', 'delete': 'destroy'}), name='language-detail'),
+    path('book_queue/<int:book_id>/', views.BookQueueView.as_view(), name='book-queue'),
 ]

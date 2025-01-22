@@ -7,6 +7,14 @@ import {
   Container,
   Divider,
   Chip,
+  Table,
+  TableContainer,
+  TableHead,
+  TableCell,
+  TableRow,
+  TableBody,
+  Checkbox,
+  CircularProgress,
 } from "@mui/material";
 import transition from "./utils/transition";
 
@@ -33,38 +41,99 @@ interface Book {
   language: number;
 }
 
+interface BookQueue {
+  book_queue_id: number;
+  user_id: number;
+  book_id: number;
+  queue_date: string;
+  turn: number;
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone_number: string;
+}
+
 type BookProps = {
   book: Book;
   isAdmin: boolean;
 };
 
-const Book: React.FC<BookProps> = ({ book, isAdmin }) => {
-  /*
-  const [book, setBook] = useState<Book | null>(_book);
-  useEffect(() => {
-    const fetchBook = async () => {
-      try {
-        const response = await fetch(
-          `http://localhost:8000/api/book/${bookID}`
-        );
 
-        if (response.ok) {
-          setBook(await response.json());
-        } else {
-          alert("Failed to fetch books");
-        }
-      } catch (error) {
-        alert("Failed to fetch books " + error);
+function getCookie(name: string) {
+  let cookieValue = null;
+  if (document.cookie && document.cookie !== '') {
+      const cookies = document.cookie.split(';');
+      for (let i = 0; i < cookies.length; i++) {
+          const cookie = cookies[i].trim();
+          if (cookie.startsWith(name + '=')) {
+              cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+              break;
+          }
       }
-    };
+  }
+  return cookieValue;
+}
 
-    fetchBook();
-  }, []);*/
+
+const Book: React.FC<BookProps> = ({ book, isAdmin }) => {
+  
+  const [selected, setSelected] = useState<number | null>(null);
+  const [bookQueue, setBookQueue] = useState<Array<BookQueue>>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+
+    const fetchBookQueue = async () => {
+      try {
+        const response = await fetch(`http://localhost:8000/api/book_queue/${book.bookID}/`);
+        setLoading(false);
+
+        if (!response.ok) {
+          throw Error(`Error ${response.status}`);
+        }
+        const data = await response.json();
+        setBookQueue(data);
+      } 
+      catch (error) {
+        
+      }
+    }
+
+    setSelected(null);
+    setLoading(true);
+    setBookQueue([]);
+    fetchBookQueue();
+  }, [book.bookID]);
+
+  const handleReserveBook = async () => {
+    try {
+      const csrftoken = getCookie('csrftoken');
+      if (!csrftoken)
+        throw Error(`Error`);
+
+      const response = await fetch(`http://localhost:8000/api/reserve-book/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          'X-CSRFToken': csrftoken,
+        },
+        credentials: "include",
+        
+        body: JSON.stringify({ book_id: book.bookID }),
+      });
+
+      if (!response.ok) {
+        throw Error(`Error ${response.status}`);
+      }
+    } catch (error) {
+      alert("Failed to reserve book " + error);
+    }
+  }
 
   if (book == null) return <>Loading...</>;
 
   return (
-    <Container maxWidth="sm" sx={{ paddingY: 5 }}>
+    <Container maxWidth="md" sx={{ paddingY: 5 }}>
       <Box
         position="relative"
         display="flex"
@@ -139,17 +208,68 @@ const Book: React.FC<BookProps> = ({ book, isAdmin }) => {
           <Button
             sx={{ mt: "100px" }}
             variant="contained"
+            onClick={() => handleReserveBook()}
           >
             Reserve
           </Button>
         ) : (
           <Fragment>
-            <Button
-              sx={{ mt: "100px" }}
-              variant="contained"
-            >
-              Borrow
-            </Button>
+            
+            {bookQueue.length > 0 ? (
+            <Fragment>
+              <TableContainer sx={{ mt: "50px" }} component={Paper}>
+                <Table sx={{ minWidth: 650 }} size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell></TableCell>
+                      <TableCell>Name</TableCell>
+                      <TableCell align="right">E-Mail</TableCell>
+                      <TableCell align="right">Phone number</TableCell>
+                      <TableCell align="right">Date</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {bookQueue.map((row, index) => (
+                      <TableRow
+                        key={row.book_queue_id}
+                        sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
+                      >
+                        <TableCell>
+                          <Checkbox 
+                            checked={selected === index} 
+                            onChange={(e) => {
+                              setSelected((e.target.checked) ? index : null);
+                            }}
+                          />
+                        </TableCell>
+                        <TableCell component="th" scope="row">
+                          {row.first_name + " " + row.last_name}
+                        </TableCell>
+                        <TableCell align="right">{row.email}</TableCell>
+                        <TableCell align="right">{row.phone_number}</TableCell>
+                        <TableCell align="right">{row.queue_date}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+              <Button
+                sx={{ mt: "25px" }}
+                variant="contained"
+                disabled={selected === null}
+              >
+                Borrow
+              </Button>
+            </Fragment>  
+            ) : (
+              loading ? (
+                <CircularProgress/>
+              ) : (
+              <Typography sx={{ mt: "50px" }}>No reservations</Typography>
+              )
+            )}
+
+            
 
             <Button
               sx={{ mt: "20px"  }}
