@@ -47,7 +47,7 @@ const BookList = ({ books, booksLoading }: BookListProps) => {
     return (
       <List>
         {booksArr.map((book) => (
-          <ListItem key={book.id}>{book.title}</ListItem>
+          <ListItem key={book.bookID}>{book.title}</ListItem>
         ))}
       </List>
     );

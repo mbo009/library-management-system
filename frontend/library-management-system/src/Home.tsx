@@ -170,6 +170,16 @@ const Home = () => {
     setResults([]);
   };
 
+  const getItemText = (item: any) => {
+    if ("authors" in item) {
+      return item.authors.map((author: any) => author.name).join(", ");
+    } else if ("email" in item && "phone_number" in item) {
+      return item.email;
+    } else {
+      return "Unknown";
+    }
+  };
+
   return (
     <Stack direction="row" sx={{ height: "100vh" }}>
       <Box
@@ -210,7 +220,7 @@ const Home = () => {
               </ToggleButtonGroup>
             )}
           </Stack>
-          <Box sx={{ maxHeight: "75vh", overflowY: "auto" }}>
+          <Box marginTop={1} sx={{ maxHeight: "80%", overflowY: "auto" }}>
             {searchLoading ? (
               <Box
                 marginTop={2}
@@ -232,13 +242,16 @@ const Home = () => {
               </Typography>
             ) : (
               results.map((item) => (
-                <Box
-                  key={"id" in item ? item.id : Math.random()}
+                <Paper
+                  key={Math.random()}
+                  variant="outlined"
+                  elevation={30}
                   sx={{
                     display: "flex",
                     alignItems: "center",
                     my: 1,
                     cursor: "pointer",
+                    borderColor: (theme) => theme.palette.primary.main,
                     "&:hover": {
                       backgroundColor: "lightgray",
                     },
@@ -248,14 +261,36 @@ const Home = () => {
                     console.log(selectedItem);
                   }}
                 >
-                  <Typography variant="h3" sx={{ flexGrow: 1 }}>
-                    {"title" in item
-                      ? item.title
-                      : "first_name" in item && "last_name" in item
-                      ? `${item.first_name} ${item.last_name}`
-                      : "Unknown"}
-                  </Typography>
-                </Box>
+                  <Stack direction="column" spacing={1} sx={{ width: "100%" }}>
+                    <Typography
+                      variant="h5"
+                      sx={{
+                        flexGrow: 1,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                        maxWidth: "100%",
+                      }}
+                    >
+                      {"title" in item
+                        ? item.title
+                        : "first_name" in item && "last_name" in item
+                        ? `${item.first_name} ${item.last_name}`
+                        : "Unknown"}
+                    </Typography>
+                    <Typography
+                      variant="h6"
+                      sx={{
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                        maxWidth: "100%",
+                      }}
+                    >
+                      {getItemText(item)}
+                    </Typography>
+                  </Stack>
+                </Paper>
               ))
             )}
           </Box>
@@ -271,9 +306,15 @@ const Home = () => {
           sx={{ height: "100%", display: "flex", flexDirection: "column" }}
         >
           {user?.is_librarian ? (
-            <AdminPanel selectedItem={selectedItem} setSelectedItem={setSelectedItem} />
+            <AdminPanel
+              selectedItem={selectedItem}
+              setSelectedItem={setSelectedItem}
+            />
           ) : (
-            <UserPanel selectedItem={selectedItem} setSelectedItem={setSelectedItem} />
+            <UserPanel
+              selectedItem={selectedItem}
+              setSelectedItem={setSelectedItem}
+            />
           )}
         </Paper>
       </Box>

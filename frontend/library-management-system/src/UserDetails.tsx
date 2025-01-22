@@ -36,12 +36,10 @@ const UserDetails: React.FC<UserDetailsProps> = ({ userData }) => {
         <Typography>User has no borrowed books.</Typography>
       ) : (
         userData.borrowed_books.map((book) => (
-          <List key={book.id} sx={{ padding: 1 }}>
+          <List key={book.bookID} sx={{ padding: 1 }}>
             <ListItem>
               <Stack direction="row" spacing={2}>
-                <Typography>
-                  {book.authors} {book.title}
-                </Typography>
+                <Typography>{book.title}</Typography>
                 <Button>Return book</Button>
               </Stack>
             </ListItem>

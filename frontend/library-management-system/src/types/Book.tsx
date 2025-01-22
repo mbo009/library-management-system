@@ -16,5 +16,3 @@ export type Book = {
   genre: number;
   language: number;
 };
-
-
