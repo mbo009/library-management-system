@@ -1,5 +1,4 @@
-import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Fragment, useEffect, useState } from "react";
 import {
   Box,
   Button,
@@ -8,9 +7,16 @@ import {
   Container,
   Divider,
   Chip,
+  Table,
+  TableContainer,
+  TableHead,
+  TableCell,
+  TableRow,
+  TableBody,
+  Checkbox,
+  CircularProgress,
 } from "@mui/material";
 import transition from "./utils/transition";
-
 
 interface Author {
   id: number;
@@ -18,77 +24,139 @@ interface Author {
   bio: string;
 }
 
-
 interface Book {
-    bookID: number;
-    authors: Array<Author>;
-    genre_name: string;
-    language_name: string;
-    language_shortcut: string;
-    title: string;
-    description: string;
-    isbn: string;
-    published_date: string;
-    page_count: number;
-    created_at: string;
-    updated_at: string;
-    genre: number;
-    language: number;
+  bookID: number;
+  authors: Array<Author>;
+  genre_name: string;
+  language_name: string;
+  language_shortcut: string;
+  title: string;
+  description: string;
+  isbn: string;
+  published_date: string;
+  page_count: number;
+  created_at: string;
+  updated_at: string;
+  genre: number;
+  language: number;
+}
+
+interface BookQueue {
+  book_queue_id: number;
+  user_id: number;
+  book_id: number;
+  queue_date: string;
+  turn: number;
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone_number: string;
+}
+
+type BookProps = {
+  book: Book;
+  isAdmin: boolean;
+};
+
+
+function getCookie(name: string) {
+  let cookieValue = null;
+  if (document.cookie && document.cookie !== '') {
+      const cookies = document.cookie.split(';');
+      for (let i = 0; i < cookies.length; i++) {
+          const cookie = cookies[i].trim();
+          if (cookie.startsWith(name + '=')) {
+              cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+              break;
+          }
+      }
+  }
+  return cookieValue;
 }
 
 
-
-const Book = () => {
-  const [book, setBook] = useState<Book | null>(null);
-  const [searchParams, _] = useSearchParams();
-  const bookID = searchParams.get("book_id");
+const Book: React.FC<BookProps> = ({ book, isAdmin }) => {
+  
+  const [selected, setSelected] = useState<number | null>(null);
+  const [bookQueue, setBookQueue] = useState<Array<BookQueue>>([]);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
 
-    const fetchBook = async () => {
+    const fetchBookQueue = async () => {
       try {
-        const response = await fetch(`http://localhost:8000/api/book/${bookID}`);
+        const response = await fetch(`http://localhost:8000/api/book_queue/${book.bookID}/`);
+        setLoading(false);
 
-        if (response.ok) {
-          setBook(await response.json());
+        if (!response.ok) {
+          throw Error(`Error ${response.status}`);
         }
-        else {
-          alert("Failed to fetch books");
-        }
+        const data = await response.json();
+        setBookQueue(data);
       } 
       catch (error) {
-        alert("Failed to fetch books " + error);
+        
       }
     }
 
-    fetchBook();
+    setSelected(null);
+    setLoading(true);
+    setBookQueue([]);
+    fetchBookQueue();
+  }, [book.bookID]);
 
-  }, []);
+  const handleReserveBook = async () => {
+    try {
+      const csrftoken = getCookie('csrftoken');
+      if (!csrftoken)
+        throw Error(`Error`);
 
-  if (book == null)
-    return <>Loading...</>
+      const response = await fetch(`http://localhost:8000/api/reserve-book/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          'X-CSRFToken': csrftoken,
+        },
+        credentials: "include",
+        
+        body: JSON.stringify({ book_id: book.bookID }),
+      });
+
+      if (!response.ok) {
+        throw Error(`Error ${response.status}`);
+      }
+    } catch (error) {
+      alert("Failed to reserve book " + error);
+    }
+  }
+
+  if (book == null) return <>Loading...</>;
 
   return (
-    <Container maxWidth="sm" sx={{ paddingY: 5 }}>
-      <Box position="relative" display="flex" flexDirection="column" alignItems="center" justifyContent="center" gap={2}>
-
+    <Container maxWidth="md" sx={{ paddingY: 5 }}>
+      <Box
+        position="relative"
+        display="flex"
+        flexDirection="column"
+        alignItems="center"
+        justifyContent="center"
+        gap={2}
+      >
         <Typography variant="h2" sx={{ mb: "15px" }}>
           {book.title}
         </Typography>
 
-        <Typography sx={{ mb: "15px" }}>
-          {book.description}
-        </Typography>
-        
-        <Divider textAlign="left" style={{width:'100%'}}>
+        <Typography sx={{ mb: "15px" }}>{book.description}</Typography>
+
+        <Divider textAlign="left" style={{ width: "100%" }}>
           Authors
         </Divider>
 
         <Paper
           sx={{
-            display: 'flex',
-            justifyContent: 'flex-start',
-            flexWrap: 'wrap',
+            display: "flex",
+            justifyContent: "flex-start",
+            flexWrap: "wrap",
             gap: 1,
             p: 0.5,
             m: 0,
@@ -109,7 +177,7 @@ const Book = () => {
           })}
         </Paper>
 
-        <Divider sx={{ mt: "15px", width:'100%'}}/>
+        <Divider sx={{ mt: "15px", width: "100%" }} />
 
         <Box display="flex" justifyContent="space-between" width="100%" gap={2}>
           <Box flex={1} textAlign="left">
@@ -120,12 +188,14 @@ const Book = () => {
               <b>ISBN: </b> {book.isbn}
             </Typography>
             <Typography>
-              <b>Language: </b> {book.language_name ? (book.language_name + " (" + book.language_shortcut + ")") : ""}
+              <b>Language: </b>{" "}
+              {book.language_name
+                ? book.language_name + " (" + book.language_shortcut + ")"
+                : ""}
             </Typography>
-
           </Box>
           <Box flex={1} textAlign="left">
-            <Typography sx={{ textTransform: 'capitalize' }}>
+            <Typography sx={{ textTransform: "capitalize" }}>
               <b>Genre: </b> {book.genre_name}
             </Typography>
             <Typography>
@@ -133,19 +203,82 @@ const Book = () => {
             </Typography>
           </Box>
         </Box>
+        
+        {!isAdmin ? (
+          <Button
+            sx={{ mt: "100px" }}
+            variant="contained"
+            onClick={() => handleReserveBook()}
+          >
+            Reserve
+          </Button>
+        ) : (
+          <Fragment>
+            
+            {bookQueue.length > 0 ? (
+            <Fragment>
+              <TableContainer sx={{ mt: "50px" }} component={Paper}>
+                <Table sx={{ minWidth: 650 }} size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell></TableCell>
+                      <TableCell>Name</TableCell>
+                      <TableCell align="right">E-Mail</TableCell>
+                      <TableCell align="right">Phone number</TableCell>
+                      <TableCell align="right">Date</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {bookQueue.map((row, index) => (
+                      <TableRow
+                        key={row.book_queue_id}
+                        sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
+                      >
+                        <TableCell>
+                          <Checkbox 
+                            checked={selected === index} 
+                            onChange={(e) => {
+                              setSelected((e.target.checked) ? index : null);
+                            }}
+                          />
+                        </TableCell>
+                        <TableCell component="th" scope="row">
+                          {row.first_name + " " + row.last_name}
+                        </TableCell>
+                        <TableCell align="right">{row.email}</TableCell>
+                        <TableCell align="right">{row.phone_number}</TableCell>
+                        <TableCell align="right">{row.queue_date}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+              <Button
+                sx={{ mt: "25px" }}
+                variant="contained"
+                disabled={selected === null}
+              >
+                Borrow
+              </Button>
+            </Fragment>  
+            ) : (
+              loading ? (
+                <CircularProgress/>
+              ) : (
+              <Typography sx={{ mt: "50px" }}>No reservations</Typography>
+              )
+            )}
 
-        <Box display="flex" justifyContent="space-between" width="100%" gap={2}>
-          <Box flex={1} alignItems="center" justifyContent="center" >     
-            <Button sx={{ width: "70%", ml: "20px", mt: "100px" }} variant="contained">
-              Borrow
+            
+
+            <Button
+              sx={{ mt: "20px"  }}
+              onClick={() => window.open(`${window.location.origin}/librarian/book?book_id=${book.bookID}`)}
+            >
+              Edit
             </Button>
-          </Box>
-          <Box flex={1} alignItems="center" >
-            <Button sx={{ width: "70%", ml: "20px", mt: "100px" }} variant="contained">
-              Reserve
-            </Button>
-          </Box>
-        </Box>
+          </Fragment>
+        )}
 
       </Box>
     </Container>

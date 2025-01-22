@@ -2,7 +2,7 @@ import { Book } from "./Book.tsx";
 
 export type UserProfile = {
   user_id: number;
-  e_mail: string;
+  email: string;
   first_name: string;
   last_name: string;
   phone_number: string;

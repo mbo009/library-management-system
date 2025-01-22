@@ -1,19 +1,33 @@
 from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
 from django.http import JsonResponse
 from elasticsearch_dsl.query import MultiMatch
 from api.documents import BookDocument, UserDocument
 from django.contrib.auth import authenticate, login
-from api.serializers import BookSerializer, AuthorSerializer, BookQueueSerializer, LanguageSerializer, GenreSerializer, UserSerializer
+from api.serializers import (
+    BookSerializer,
+    AuthorSerializer,
+    BookQueueSerializer,
+    LanguageSerializer,
+    GenreSerializer,
+    UserSerializer,
+)
 from api.serializers import CreateUpdateBookSerializer
 from .utils.kafka_producer import send_kafka_message
 from django.db import transaction
 from django.contrib.auth.hashers import make_password
-from api.models import User, LibrarianKeys, Book, Author, Language, Genre
-from rest_framework.generics import ListAPIView, RetrieveAPIView, CreateAPIView, UpdateAPIView
+from api.models import User, LibrarianKeys, Book, Author, Language, Genre, BookQueue
+from rest_framework.generics import (
+    ListAPIView,
+    RetrieveAPIView,
+    CreateAPIView,
+    UpdateAPIView,
+)
 from rest_framework import status, viewsets
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from django.conf import settings 
+from rest_framework.decorators import api_view
+from django.conf import settings
 import json
 import logging
 
@@ -50,6 +64,20 @@ class GenreViewSet(viewsets.ModelViewSet):
     serializer_class = GenreSerializer
 
 
+class BookQueueView(ListAPIView):
+    serializer_class = BookQueueSerializer
+
+    def get_queryset(self):
+        book_id = self.kwargs['book_id']  # Get the book_id from the URL
+        return BookQueue.objects.filter(book_id=book_id)
+
+    def get(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        if not queryset.exists():
+            return Response({'message': 'No entries found for the given book ID.'}, status=status.HTTP_404_NOT_FOUND)
+        return super().get(request, *args, **kwargs)
+
+
 class BookCreateView(CreateAPIView):
     queryset = Book.objects.all()
     serializer_class = CreateUpdateBookSerializer
@@ -68,7 +96,6 @@ class AuthorCreateView(CreateAPIView):
 class AuthorUpdateView(UpdateAPIView):
     queryset = Author.objects.all()
     serializer_class = AuthorSerializer
-
 
 
 class CreateBookView(APIView):
@@ -115,7 +142,9 @@ class DeleteBookView(APIView):
                 value=event_data,
             )
 
-            return Response({"message": "Book deleted successfully."}, status=status.HTTP_200_OK)
+            return Response(
+                {"message": "Book deleted successfully."}, status=status.HTTP_200_OK
+            )
         except Book.DoesNotExist:
             return Response(
                 {"error": "Book not found."}, status=status.HTTP_404_NOT_FOUND
@@ -133,10 +162,7 @@ class CreateAuthorView(APIView):
             author = serializer.save()
 
             # Send a Kafka event
-            event_data = {
-                "name": author.name,
-                "bio": author.bio
-            }
+            event_data = {"name": author.name, "bio": author.bio}
             send_kafka_message(
                 topic=settings.KAFKA_CONFIG["topics"].get("author_created"),
                 key=str(author.name),
@@ -151,6 +177,8 @@ class CreateAuthorView(APIView):
         logger.error("Author creation failed, validation errors: %s", serializer.errors)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+
+"""
 class ReserveBook(APIView):
     def post(self, request, *args, **kwargs):
         serializer = BookQueueSerializer(data=request.data)
@@ -167,7 +195,9 @@ class ReserveBook(APIView):
                     }
                     if int(book_queue.turn) == 0:
                         send_kafka_message(
-                            topic=settings.KAFKA_CONFIG["topics"].get("reservation_created"),
+                            topic=settings.KAFKA_CONFIG["topics"].get(
+                                "reservation_created"
+                            ),
                             key=str(book_queue.book_queue_id),
                             value=event_data,
                         )
@@ -178,6 +208,37 @@ class ReserveBook(APIView):
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+"""
+
+
+class ReserveBook(APIView):
+    def post(self, request, *args, **kwargs):
+
+        try:
+            book_id = request.data['book_id']
+            user_id = request.user.user_id
+        except Exception as e:
+            return Response(f"Bad request: {e}", status=status.HTTP_400_BAD_REQUEST)
+    	
+        try:
+            event_data = {
+                "book_id": book_id,
+                "user_id": user_id,
+            }
+            send_kafka_message(
+                topic=settings.KAFKA_CONFIG["topics"].get(
+                    "reservation_created"
+                ),
+                key=str(book_id) + ";" + str(user_id),
+                value=event_data,
+            )
+            return Response({}, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            return Response(
+                {"error": "Reservation could not be completed.", "details": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
 
 def find_book(request):
     query = request.GET.get("query")
@@ -188,7 +249,7 @@ def find_book(request):
                 "title",
                 "isbn",
                 "description",
-                "genre",
+                "genre.name",
                 "authors.name",
             ],
             fuzziness="AUTO",
@@ -198,10 +259,14 @@ def find_book(request):
             serializer = BookSerializer(books, many=True)
             return JsonResponse(serializer.data, safe=False)
         except Exception as e:
-            return JsonResponse({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return JsonResponse(
+                {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
     else:
-        return JsonResponse({"message": "No search query provided."}, status=status.HTTP_400_BAD_REQUEST)
+        return JsonResponse(
+            {"message": "No search query provided."}, status=status.HTTP_400_BAD_REQUEST
+        )
 
 
 def find_user(request):
@@ -209,12 +274,16 @@ def find_user(request):
         return JsonResponse({"error": "Only GET requests are allowed"}, status=405)
     if not request.user.is_authenticated:
         return JsonResponse({"error": "User is not authenticated"}, status=401)
-    
+
     user = User.objects.get(pk=request.user.user_id)
     if not user:
-        return JsonResponse("error: User sending request not found in the system", status=404)
+        return JsonResponse(
+            "error: User sending request not found in the system", status=404
+        )
     if not user.is_librarian:
-        return JsonResponse("error: User sending request is not a librarian", status=403)
+        return JsonResponse(
+            "error: User sending request is not a librarian", status=403
+        )
 
     try:
         query = request.GET.get("query")
@@ -234,7 +303,9 @@ def find_user(request):
         return JsonResponse(seralizer.data, safe=False)
     except Exception as e:
         logger.exception("Unexpected error occurred during get user")
-        return JsonResponse({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return JsonResponse(
+            {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
 
 
 @csrf_exempt
@@ -253,7 +324,9 @@ def sign_in(request):
 
         user = User.objects.filter(email=email).first()
         if not user:
-            logger.warning(f"User not found with email: {email}. Trying phone number...")
+            logger.warning(
+                f"User not found with email: {email}. Trying phone number..."
+            )
             user = User.objects.filter(phone_number=email).first()
 
         if user:
@@ -261,7 +334,9 @@ def sign_in(request):
             user = authenticate(request, email=user.email, password=password)
 
         if user:
-            logger.info(f"Authentication successful for user: {user.email}. Logging in...")
+            logger.info(
+                f"Authentication successful for user: {user.email}. Logging in..."
+            )
             login(request, user)
 
             response_body = {
@@ -277,20 +352,35 @@ def sign_in(request):
 
     except json.JSONDecodeError as e:
         logger.error(f"JSON parsing error: {e}")
-        return JsonResponse({"error": "Invalid JSON payload"}, status=status.HTTP_400_BAD_REQUEST)
+        return JsonResponse(
+            {"error": "Invalid JSON payload"}, status=status.HTTP_400_BAD_REQUEST
+        )
 
     except Exception as e:
         logger.error(f"Unexpected error: {e}", exc_info=True)
-        return JsonResponse({"error": "An error occurred"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return JsonResponse(
+            {"error": "An error occurred"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
 
 
 def validate_phone_number(phone_number):
     if phone_number[:3] != "+48":
-        return JsonResponse({"error": "Only polish phone numbers are supported!"}, status=422)
-    if not (len(phone_number) == 12 and phone_number[1:].isdigit() and phone_number[0] == "+"):
-        return JsonResponse({"error": "Phone numbers can only consist of + and numbers!"}, status=400)
+        return JsonResponse(
+            {"error": "Only polish phone numbers are supported!"}, status=422
+        )
+    if not (
+        len(phone_number) == 12
+        and phone_number[1:].isdigit()
+        and phone_number[0] == "+"
+    ):
+        return JsonResponse(
+            {"error": "Phone numbers can only consist of + and numbers!"}, status=400
+        )
 
-    return JsonResponse({"message": "Phone number is valid!"}, status=status.HTTP_200_OK)
+    return JsonResponse(
+        {"message": "Phone number is valid!"}, status=status.HTTP_200_OK
+    )
+
 
 @csrf_exempt
 def sign_up(request):
@@ -320,11 +410,15 @@ def sign_up(request):
 
         if not all([email, phone_number, first_name, last_name, password_hash]):
             logger.warning("Missing required fields in request")
-            return JsonResponse({"error": "Missing required fields"}, status=status.HTTP_400_BAD_REQUEST)
+            return JsonResponse(
+                {"error": "Missing required fields"}, status=status.HTTP_400_BAD_REQUEST
+            )
 
         phone_validation_response = validate_phone_number(phone_number)
         if phone_validation_response.status_code != 200:
-            logger.warning(f"Phone validation failed: {phone_validation_response.content}")
+            logger.warning(
+                f"Phone validation failed: {phone_validation_response.content}"
+            )
             return phone_validation_response
 
         is_librarian = False
@@ -351,14 +445,20 @@ def sign_up(request):
             is_librarian=is_librarian,
         )
         logger.info("User created successfully")
-        return JsonResponse({"message": "User created successfully"}, status=status.HTTP_200_OK)
+        return JsonResponse(
+            {"message": "User created successfully"}, status=status.HTTP_200_OK
+        )
 
     except json.JSONDecodeError as json_error:
         logger.error(f"JSON decoding error: {json_error}")
-        return JsonResponse({"error": "Invalid JSON"}, status=status.HTTP_400_BAD_REQUEST)
+        return JsonResponse(
+            {"error": "Invalid JSON"}, status=status.HTTP_400_BAD_REQUEST
+        )
     except Exception as e:
         logger.exception("Unexpected error occurred during sign-up")
-        return JsonResponse({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return JsonResponse(
+            {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
 
 
 def get_user_books(request):
@@ -376,11 +476,16 @@ def get_user_books(request):
             "queued_books": user.queued_books.all(),
         }
 
-        data = {key: BookSerializer(value, many=True).data for key, value in books.items()}
+        data = {
+            key: BookSerializer(value, many=True).data for key, value in books.items()
+        }
         return JsonResponse(data, safe=False, status=status.HTTP_200_OK)
     except Exception as e:
         logger.exception("Unexpected error occurred during get user books")
-        return JsonResponse({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return JsonResponse(
+            {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
 
 # KAFKA_BOOTSTRAP_SERVERS = os.environ.get('KAFKA_BOOTSTRAP_SERVERS', 'kafka:9092')
 

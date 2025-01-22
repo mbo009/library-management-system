@@ -9,7 +9,7 @@ import EditBook from "./librarian/Book.tsx";
 import EditAuthor from "./librarian/Author.tsx";
 import EditGenres from "./librarian/Genres.tsx";
 import EditLanguages from "./librarian/Languages.tsx";
-import Book from "./Book.tsx";
+
 
 function App() {
   const location = useLocation();
@@ -20,7 +20,6 @@ function App() {
         <Routes location={location} key={location.pathname}>
           <Route path="/*" element={<Login />} />
           <Route path="/home" element={<WrappedHome />} />
-          <Route path="/book" element={<Book />} />
           <Route path="/librarian/new_book" element={<EditBook create={true} />} />
           <Route path="/librarian/book" element={<EditBook create={false} />} />
           <Route path="/librarian/new_author" element={<EditAuthor create={true} />} />

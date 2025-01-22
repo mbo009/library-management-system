@@ -16,6 +16,8 @@ import { Book } from "./types/Book";
 import BookList from "./BookList";
 import { UserSummary } from "./types/UserSummary";
 import { UserProfile } from "./types/UserProfile";
+import AdminPanel from "./AdminPanel";
+import UserPanel from "./UserPanel";
 
 const Home = () => {
   const [query, setQuery] = useState<string>("");
@@ -27,6 +29,10 @@ const Home = () => {
     returned: [],
     queued: [],
   });
+
+  const [selectedItem, setSelectedItem] = useState<Book | UserProfile | null>(
+    null
+  );
 
   const [user, _setUser] = useState<UserSummary | null>(() => {
     const storedUser = localStorage.getItem("user");
@@ -165,78 +171,113 @@ const Home = () => {
   };
 
   return (
-    <Box p={5} maxWidth={"30%"}>
-      <Paper elevation={20} sx={{ padding: 2, marginBottom: 2 }}>
-        <Stack spacing={2} direction="row">
-          <TextField
-            label="Search"
-            value={query}
-            onChange={handleInputChange}
-            sx={{ width: "100%" }}
-          />
-          {user?.is_librarian && (
-            <ToggleButtonGroup
-              value={toggleButtonValue}
-              exclusive
-              onChange={handleToggleButtonChange}
-            >
-              <ToggleButton value="user">
-                <PersonOutlined />
-              </ToggleButton>
-              <ToggleButton value="book">
-                <AutoStoriesOutlined />
-              </ToggleButton>
-            </ToggleButtonGroup>
-          )}
-        </Stack>
-        <Box sx={{ maxHeight: "75vh", overflowY: "auto" }}>
-          {searchLoading ? (
-            <Box
-              marginTop={2}
-              sx={{
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-              }}
-              overflow={"hidden"}
-            >
-              <CircularProgress />
-            </Box>
-          ) : results.length === 0 && query.length >= 4 ? (
-            <Typography variant="h6" sx={{ textAlign: "center", marginTop: 2 }}>
-              We didn't find a {toggleButtonValue} matching your description.
-            </Typography>
-          ) : (
-            results.map((item) => (
+    <Stack direction="row" sx={{ height: "100vh" }}>
+      <Box
+        paddingLeft={3}
+        paddingTop={3}
+        paddingBottom={3}
+        sx={{
+          flexGrow: 1,
+          display: "flex",
+          flexDirection: "column",
+          maxWidth: "30%",
+        }}
+      >
+        <Paper
+          elevation={20}
+          variant="outlined"
+          sx={{ padding: 2, marginBottom: 2, flexShrink: 0, maxHeight: "50%" }}
+        >
+          <Stack spacing={2} direction="row">
+            <TextField
+              label="Search"
+              value={query}
+              onChange={handleInputChange}
+              sx={{ width: "100%" }}
+            />
+            {user?.is_librarian && (
+              <ToggleButtonGroup
+                value={toggleButtonValue}
+                exclusive
+                onChange={handleToggleButtonChange}
+              >
+                <ToggleButton value="user">
+                  <PersonOutlined />
+                </ToggleButton>
+                <ToggleButton value="book">
+                  <AutoStoriesOutlined />
+                </ToggleButton>
+              </ToggleButtonGroup>
+            )}
+          </Stack>
+          <Box sx={{ maxHeight: "75vh", overflowY: "auto" }}>
+            {searchLoading ? (
               <Box
-                key={"id" in item ? item.id : Math.random()}
+                marginTop={2}
                 sx={{
                   display: "flex",
+                  justifyContent: "center",
                   alignItems: "center",
-                  my: 1,
-                  cursor: "pointer",
-                  "&:hover": {
-                    backgroundColor: "lightgray",
-                  },
                 }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                }}
+                overflow={"hidden"}
               >
-                <Typography variant="h3" sx={{ flexGrow: 1 }}>
-                  {"title" in item
-                    ? item.title
-                    : "first_name" in item && "last_name" in item
-                    ? `${item.first_name} ${item.last_name}`
-                    : "Unknown"}
-                </Typography>
+                <CircularProgress />
               </Box>
-            ))
-          )}
+            ) : results.length === 0 && query.length >= 4 ? (
+              <Typography
+                variant="h6"
+                sx={{ textAlign: "center", marginTop: 2 }}
+              >
+                We didn't find a {toggleButtonValue} matching your description.
+              </Typography>
+            ) : (
+              results.map((item) => (
+                <Box
+                  key={"id" in item ? item.id : Math.random()}
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    my: 1,
+                    cursor: "pointer",
+                    "&:hover": {
+                      backgroundColor: "lightgray",
+                    },
+                  }}
+                  onClick={(_e) => {
+                    setSelectedItem(item);
+                    console.log(selectedItem);
+                  }}
+                >
+                  <Typography variant="h3" sx={{ flexGrow: 1 }}>
+                    {"title" in item
+                      ? item.title
+                      : "first_name" in item && "last_name" in item
+                      ? `${item.first_name} ${item.last_name}`
+                      : "Unknown"}
+                  </Typography>
+                </Box>
+              ))
+            )}
+          </Box>
+        </Paper>
+        <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
+          <BookList books={books} booksLoading={booksLoading} />
         </Box>
-      </Paper>
-      <BookList books={books} booksLoading={booksLoading} />
-    </Box>
+      </Box>
+      <Box padding={3} sx={{ flexShrink: 0, width: "70%" }}>
+        <Paper
+          variant="outlined"
+          elevation={20}
+          sx={{ height: "100%", display: "flex", flexDirection: "column" }}
+        >
+          {user?.is_librarian ? (
+            <AdminPanel selectedItem={selectedItem} setSelectedItem={setSelectedItem} />
+          ) : (
+            <UserPanel selectedItem={selectedItem} setSelectedItem={setSelectedItem} />
+          )}
+        </Paper>
+      </Box>
+    </Stack>
   );
 };
 

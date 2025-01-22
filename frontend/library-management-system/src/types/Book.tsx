@@ -1,12 +1,20 @@
+import { Author } from "./Author";
+
 export type Book = {
-  id: number;
+  bookID: number;
+  authors: Array<Author>;
+  genre_name: string;
+  language_name: string;
+  language_shortcut: string;
   title: string;
-  authors: string[];
-  genre: string;
+  description: string;
   isbn: string;
-  description: string | null;
-  page_count: number | null;
-  published_date: string | null;
+  published_date: string;
+  page_count: number;
   created_at: string;
   updated_at: string;
+  genre: number;
+  language: number;
 };
+
+

@@ -38,6 +38,7 @@ const BookList = ({ books, booksLoading }: BookListProps) => {
           justifyContent="center"
           display="flex"
           flexDirection="column"
+          flexGrow={1}
         >
           <Typography marginTop={2}>{emptyMessage}</Typography>
         </Box>
@@ -53,7 +54,15 @@ const BookList = ({ books, booksLoading }: BookListProps) => {
   };
 
   return (
-    <Paper elevation={20} sx={{ padding: 2 }}>
+    <Paper
+      elevation={20}
+      sx={{
+        height: "100%",
+        padding: 2,
+        display: "flex",
+        flexDirection: "column",
+      }}
+    >
       <Tabs
         value={tab}
         onChange={handleTabChange}
@@ -72,20 +81,21 @@ const BookList = ({ books, booksLoading }: BookListProps) => {
             display: "flex",
             justifyContent: "center",
             alignItems: "center",
+            flexGrow: 1,
           }}
           overflow={"hidden"}
         >
           <CircularProgress />
         </Box>
       ) : (
-        <>
+        <Box sx={{ flexGrow: 1 }}>
           {tab === 0 && (
-            <Box>
+            <Box sx={{ height: "100%" }}>
               {renderBooks(books.borrowed, "You didn't borrow any book yet!")}
             </Box>
           )}
           {tab === 1 && (
-            <Box>
+            <Box sx={{ height: "100%" }}>
               {renderBooks(
                 books.returned,
                 "You haven't returned any book yet!"
@@ -93,14 +103,14 @@ const BookList = ({ books, booksLoading }: BookListProps) => {
             </Box>
           )}
           {tab === 2 && (
-            <Box>
+            <Box sx={{ height: "100%" }}>
               {renderBooks(
                 books.queued,
                 "You haven't queued for any book yet!"
               )}
             </Box>
           )}
-        </>
+        </Box>
       )}
     </Paper>
   );

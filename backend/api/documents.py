@@ -8,7 +8,7 @@ class UserDocument(Document):
     """
     Elasticsearch document for User.
     """
-    
+
     borrowed_books = fields.ObjectField(
         properties={
             "isbn": fields.TextField(),
@@ -46,15 +46,14 @@ class BookDocument(Document):
 
     authors = fields.ObjectField(
         properties={
-            "id": fields.IntegerField(),
-            "name": fields.TextField(),
+            "name": fields.TextField(analyzer="standard"),
             "bio": fields.TextField(),
         }
     )
 
     genre = fields.ObjectField(
         properties={
-            "name": fields.TextField(),
+            "name": fields.TextField(analyzer="standard"),
         }
     )
 
@@ -68,22 +67,28 @@ class BookDocument(Document):
 
     class Django:
         model = Book
-        fields = [
-            "title",
-            "description",
-            "isbn",
-        ]
+        fields = ["title", "description", "isbn"]
+
+    def prepare(self, instance):
+        data = super().prepare(instance)
+        data["authors"] = self.prepare_authors(instance)
+        data["genre"] = self.prepare_genre(instance)
+        return data
 
     def prepare_authors(self, instance):
         return [
-            {"id": author.id, "name": author.name, "bio": author.bio}
+            {"name": author.name, "bio": author.bio}
             for author in instance.authors.all()
         ]
 
     def prepare_genre(self, instance):
-        return {
-            "name": instance.genre.name,
-        } if instance.genre else None
+        return (
+            {
+                "name": instance.genre.name,
+            }
+            if instance.genre
+            else None
+        )
 
     def get_id(self, instance):
         return instance.isbn
