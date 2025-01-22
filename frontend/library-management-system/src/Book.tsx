@@ -1,5 +1,4 @@
-import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Fragment, useEffect, useState } from "react";
 import {
   Box,
   Button,
@@ -34,11 +33,14 @@ interface Book {
   language: number;
 }
 
-const Book = () => {
-  const [book, setBook] = useState<Book | null>(null);
-  const [searchParams, _] = useSearchParams();
-  const bookID = searchParams.get("book_id");
+type BookProps = {
+  book: Book;
+  isAdmin: boolean;
+};
 
+const Book: React.FC<BookProps> = ({ book, isAdmin }) => {
+  /*
+  const [book, setBook] = useState<Book | null>(_book);
   useEffect(() => {
     const fetchBook = async () => {
       try {
@@ -57,7 +59,7 @@ const Book = () => {
     };
 
     fetchBook();
-  }, []);
+  }, []);*/
 
   if (book == null) return <>Loading...</>;
 
@@ -132,25 +134,32 @@ const Book = () => {
             </Typography>
           </Box>
         </Box>
-
-        <Box display="flex" justifyContent="space-between" width="100%" gap={2}>
-          <Box flex={1} alignItems="center" justifyContent="center">
+        
+        {!isAdmin ? (
+          <Button
+            sx={{ mt: "100px" }}
+            variant="contained"
+          >
+            Reserve
+          </Button>
+        ) : (
+          <Fragment>
             <Button
-              sx={{ width: "70%", ml: "20px", mt: "100px" }}
+              sx={{ mt: "100px" }}
               variant="contained"
             >
               Borrow
             </Button>
-          </Box>
-          <Box flex={1} alignItems="center">
+
             <Button
-              sx={{ width: "70%", ml: "20px", mt: "100px" }}
-              variant="contained"
+              sx={{ mt: "20px"  }}
+              onClick={() => window.open(`${window.location.origin}/librarian/book?book_id=${book.bookID}`)}
             >
-              Reserve
+              Edit
             </Button>
-          </Box>
-        </Box>
+          </Fragment>
+        )}
+
       </Box>
     </Container>
   );

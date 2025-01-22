@@ -271,9 +271,9 @@ const Home = () => {
           sx={{ height: "100%", display: "flex", flexDirection: "column" }}
         >
           {user?.is_librarian ? (
-            <AdminPanel selectedItem={selectedItem} />
+            <AdminPanel selectedItem={selectedItem} setSelectedItem={setSelectedItem} />
           ) : (
-            <UserPanel />
+            <UserPanel selectedItem={selectedItem} setSelectedItem={setSelectedItem} />
           )}
         </Paper>
       </Box>
