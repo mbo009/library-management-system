@@ -28,10 +28,10 @@ interface Author {
   bio: string;
 }
 
-
 interface Book {
   bookID: number | null;
   authors: Array<Author>;
+  coverPhoto: string;
   title: string;
   description: string;
   isbn: string;
@@ -54,15 +54,16 @@ interface Genre {
 
 function initBook(): Book {
   return {
-      bookID: null,
-      isbn: "",
-      title: "",
-      description: "",
-      genre: 0,
-      authors: [],
-      published_date: null,
-      page_count: 1,
-      language: 0,
+    bookID: null,
+    isbn: "",
+    title: "",
+    description: "",
+    genre: 0,
+    authors: [],
+    coverPhoto: "",
+    published_date: null,
+    page_count: 1,
+    language: 0,
   };
 }
 
@@ -74,17 +75,63 @@ const EditBook: React.FC<EditBookProps> = ({ create }) => {
   const [book, setBook] = useState<Book>(initBook());
   const [languages, setLanguages] = useState<Array<Language>>([]);
   const [genres, setGenres] = useState<Array<Genre>>([]);
+  const [selectedCoverPhoto, setSelectedCoverPhoto] = useState<File | null>(
+    null
+  );
 
   const [searchParams, _] = useSearchParams();
   const bookID = searchParams.get("book_id");
 
   const [selectAuthor, setSelectAuthor] = useState(false);
 
-  useEffect(() => {
+  const handleMediaChanged = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ): void => {
+    const attachedFile = event.target.files?.[0];
+    if (attachedFile) {
+      setSelectedCoverPhoto(attachedFile);
+    }
+  };
 
+  const uploadMedia = async (attachedFile: File): Promise<string | null> => {
+    if (!attachedFile) return null;
+
+    const formData = new FormData();
+    formData.append("cover", attachedFile);
+    formData.append("data", JSON.stringify({ bookID: bookID }));
+
+    try {
+      const response = await fetch("http://localhost:8000/api/upload_cover/", {
+        method: "POST",
+        credentials: "include",
+        body: formData,
+      });
+      if (!response.ok) {
+        alert("Failed to upload media: " + response.statusText);
+        return null;
+      }
+
+      const data = await response.json();
+      console.log(data);
+      if (!book.coverPhoto.includes(data.mediaPath)) {
+        setBook({
+          ...book,
+          coverPhoto: data.mediaPath,
+        });
+      }
+      return data.mediaPath;
+    } catch (error) {
+      alert("Failed to upload media: " + error);
+      return null;
+    }
+  };
+
+  useEffect(() => {
     const fetchBook = async () => {
       try {
-        const response = await fetch(`http://localhost:8000/api/book/${bookID}`);
+        const response = await fetch(
+          `http://localhost:8000/api/book/${bookID}`
+        );
 
         if (response.ok) {
           const book = await response.json();
@@ -97,15 +144,13 @@ const EditBook: React.FC<EditBookProps> = ({ create }) => {
           }
 
           setBook(book);
-        }
-        else {
+        } else {
           alert("Failed to fetch book details");
         }
-      } 
-      catch (error) {
+      } catch (error) {
         alert("Failed to fetch book details " + error);
       }
-    }
+    };
 
     const fetchLanguages = async () => {
       try {
@@ -113,15 +158,13 @@ const EditBook: React.FC<EditBookProps> = ({ create }) => {
 
         if (response.ok) {
           setLanguages(await response.json());
-        }
-        else {
+        } else {
           alert("Failed to fetch languages");
         }
-      } 
-      catch (error) {
+      } catch (error) {
         alert("Failed to fetch languages " + error);
       }
-    }
+    };
 
     const fetchGenres = async () => {
       try {
@@ -129,26 +172,21 @@ const EditBook: React.FC<EditBookProps> = ({ create }) => {
 
         if (response.ok) {
           setGenres(await response.json());
-        }
-        else {
+        } else {
           alert("Failed to fetch genres");
         }
-      } 
-      catch (error) {
+      } catch (error) {
         alert("Failed to fetch genres " + error);
       }
-    }
+    };
 
-    if (!create)
-      fetchBook();
+    if (!create) fetchBook();
 
     fetchLanguages();
     fetchGenres();
-
   }, []);
 
-  if (!create && book.bookID === null)
-      return <>Loading...</>;
+  if (!create && book.bookID === null) return <>Loading...</>;
 
   console.log(book);
 
@@ -161,7 +199,6 @@ const EditBook: React.FC<EditBookProps> = ({ create }) => {
 
   const handleCloseAuthorDialog = (author?: Author) => {
     if (author) {
-
       const matchingAuthor = book.authors.find((a) => a.id == author.id);
       if (matchingAuthor === undefined) {
         setBook({ ...book, authors: [...book.authors, author] });
@@ -176,39 +213,53 @@ const EditBook: React.FC<EditBookProps> = ({ create }) => {
   };
 
   const handleSaveBook = async () => {
-    var requestBody = {
-      authors: book.authors.map((author) => author.id),
-      title: book.title,
-      description: book.description,
-      isbn: book.isbn,
-      published_date: book.published_date,
-      page_count: book.page_count,
-      genre:  book.genre,
-      language: book.language,
-    };
+    try {
+      let coverMediaPath = book.coverPhoto;
+      if (selectedCoverPhoto) {
+        const uploadedPath = await uploadMedia(selectedCoverPhoto);
+        if (uploadedPath) {
+          coverMediaPath = uploadedPath;
+        }
+      }
 
-    let api, method;
-    if (create) {
-      api = "http://localhost:8000/api/create_book/";
-      method = "POST";
-    }
-    else {
-      api = `http://localhost:8000/api/update_book/${book.bookID}/`;
-      method = "PUT";
-    }
+      const requestBody = {
+        authors: book.authors.map((author) => author.id),
+        title: book.title,
+        description: book.description,
+        isbn: book.isbn,
+        published_date: book.published_date,
+        page_count: book.page_count,
+        genre: book.genre,
+        language: book.language,
+        cover: coverMediaPath,
+      };
 
-    const response = await fetch(api, {
-      method: method, 
-      body: JSON.stringify(requestBody),
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
+      let api, method;
+      if (create) {
+        api = "http://localhost:8000/api/create_book/";
+        method = "POST";
+      } else {
+        api = `http://localhost:8000/api/update_book/${book.bookID}/`;
+        method = "PUT";
+      }
 
-    if (response.ok) {
-      console.log("SAVED");
+      const response = await fetch(api, {
+        method: method,
+        body: JSON.stringify(requestBody),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to save book details.");
+      }
+
+      console.log("Book saved successfully.");
+    } catch (error) {
+      console.error("Error saving book:", error);
     }
-  }
+  };
 
   const isBookISBNValid = isValidISBN(book.isbn);
 
@@ -278,11 +329,17 @@ const EditBook: React.FC<EditBookProps> = ({ create }) => {
               labelId="genre-select-label"
               value={book.genre}
               label="Genre"
-              onChange={(e) => setBook({ ...book, genre: Number(e.target.value) })}
+              onChange={(e) =>
+                setBook({ ...book, genre: Number(e.target.value) })
+              }
             >
-              <MenuItem key={0} value={0}>---</MenuItem>
+              <MenuItem key={0} value={0}>
+                ---
+              </MenuItem>
               {genres.map((genre, index) => (
-                <MenuItem key={index+1} value={genre.genreID}>{genre.name}</MenuItem>
+                <MenuItem key={index + 1} value={genre.genreID}>
+                  {genre.name}
+                </MenuItem>
               ))}
             </Select>
           </FormControl>
@@ -306,11 +363,17 @@ const EditBook: React.FC<EditBookProps> = ({ create }) => {
             labelId="language-select-label"
             value={book.language}
             label="Language"
-            onChange={(e) => setBook({ ...book,language: Number(e.target.value) })}
+            onChange={(e) =>
+              setBook({ ...book, language: Number(e.target.value) })
+            }
           >
-            <MenuItem key={0} value={0}>---</MenuItem>
+            <MenuItem key={0} value={0}>
+              ---
+            </MenuItem>
             {languages.map((language, index) => (
-              <MenuItem key={index+1} value={language.languageID}>{language.name}</MenuItem>
+              <MenuItem key={index + 1} value={language.languageID}>
+                {language.name}
+              </MenuItem>
             ))}
           </Select>
         </FormControl>
@@ -367,6 +430,14 @@ const EditBook: React.FC<EditBookProps> = ({ create }) => {
             </ListItem>
           ))}
         </List>
+        <Button
+          variant="contained"
+          component="label"
+          sx={{ marginBottom: "16px" }}
+        >
+          ADD COVER PHOTO
+          <input type="file" hidden onChange={handleMediaChanged} />
+        </Button>
 
         <Button
           sx={{ mt: "10px" }}
@@ -384,7 +455,7 @@ const EditBook: React.FC<EditBookProps> = ({ create }) => {
 };
 
 function isValidISBN(isbn: string): boolean {
-  const cleaned = isbn.replace(/[-\s]/g, ""); // Remove hyphens and spaces
+  const cleaned = isbn.replace(/[-\s]/g, "");
 
   if (cleaned.length === 10) {
     return isValidISBN10(cleaned);
