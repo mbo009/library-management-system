@@ -41,7 +41,11 @@ def process_reservations(event):
 
         serializer = CreateBookQueueSerializer(data=event)
         if serializer.is_valid():
-            book_queue = serializer.save()
+            with transaction.atomic():
+                book_queue = serializer.save()
+                book = Book.objects.get(pk=book_id)
+                book.reserved_copies += 1
+                book.save()
             
     except Exception as e:
         logger.info(f"Error processing reservations: {e}")

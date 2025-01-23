@@ -72,7 +72,11 @@ const Home = () => {
       }
 
       const books = await response.json();
-      setBooks(books);
+      setBooks({
+        borrowed: books.currently_borrowed_books,
+        returned: books.previously_borrowed_books,
+        queued: books.queued_books,
+      });
       console.log("Fetched user books:", books);
     } catch (error) {
       console.error("Error fetching user books:", error);

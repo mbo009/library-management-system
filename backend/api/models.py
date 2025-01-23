@@ -40,6 +40,9 @@ class Book(models.Model):
     authors = models.ManyToManyField(Author, related_name="books")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    total_copies = models.IntegerField(default=0)
+    reserved_copies = models.IntegerField(default=0)
+    borrowed_copies = models.IntegerField(default=0)
 
     def __str__(self):
         return self.title

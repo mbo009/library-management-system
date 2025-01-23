@@ -15,6 +15,7 @@ type UserDetailsProps = {
 };
 
 const UserDetails: React.FC<UserDetailsProps> = ({ userData }) => {
+  console.log(userData.borrowed_books)
   return (
     <Box sx={{ padding: 2 }}>
       <Divider>User Details</Divider>

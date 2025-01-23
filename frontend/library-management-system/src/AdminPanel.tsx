@@ -23,8 +23,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ selectedItem, setSelectedItem }
     return item !== null && "bookID" in item; // Ensure this matches a unique property of UserProfile
   };
 
-  console.log("SLS", selectedItem);
-
   if (!selectedItem) {
     return (
       <Box p={3} alignContent={"center"} textAlign={"center"}>

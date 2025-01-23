@@ -17,6 +17,7 @@ import {
   ListItem,
   ListSubheader,
   ListItemText,
+  CircularProgress,
 } from "@mui/material";
 import transition from "../utils/transition";
 
@@ -39,6 +40,7 @@ interface Book {
   page_count: number;
   genre: number;
   language: number;
+  total_copies: number;
 }
 
 interface Language {
@@ -63,6 +65,7 @@ function initBook(): Book {
       published_date: null,
       page_count: 1,
       language: 0,
+      total_copies: 0,
   };
 }
 
@@ -74,6 +77,7 @@ const EditBook: React.FC<EditBookProps> = ({ create }) => {
   const [book, setBook] = useState<Book>(initBook());
   const [languages, setLanguages] = useState<Array<Language>>([]);
   const [genres, setGenres] = useState<Array<Genre>>([]);
+  const [loading, setLoading] = useState<boolean>(true);
 
   const [searchParams, _] = useSearchParams();
   const bookID = searchParams.get("book_id");
@@ -144,11 +148,12 @@ const EditBook: React.FC<EditBookProps> = ({ create }) => {
 
     fetchLanguages();
     fetchGenres();
+    setLoading(false);
 
   }, []);
 
   if (!create && book.bookID === null)
-      return <>Loading...</>;
+      return <CircularProgress/>;
 
   console.log(book);
 
@@ -176,6 +181,7 @@ const EditBook: React.FC<EditBookProps> = ({ create }) => {
   };
 
   const handleSaveBook = async () => {
+    setLoading(true);
     var requestBody = {
       authors: book.authors.map((author) => author.id),
       title: book.title,
@@ -185,6 +191,7 @@ const EditBook: React.FC<EditBookProps> = ({ create }) => {
       page_count: book.page_count,
       genre:  book.genre,
       language: book.language,
+      total_copies: book.total_copies,
     };
 
     let api, method;
@@ -208,6 +215,7 @@ const EditBook: React.FC<EditBookProps> = ({ create }) => {
     if (response.ok) {
       console.log("SAVED");
     }
+    setLoading(false);
   }
 
   const isBookISBNValid = isValidISBN(book.isbn);
@@ -235,6 +243,7 @@ const EditBook: React.FC<EditBookProps> = ({ create }) => {
           onChange={(e) => setBook({ ...book, title: e.target.value })}
           variant="outlined"
           error={book.title.length == 0}
+          disabled={loading}
         />
         <Stack direction="row" sx={{ width: "100%" }} spacing={2}>
           <TextField
@@ -246,6 +255,7 @@ const EditBook: React.FC<EditBookProps> = ({ create }) => {
             onChange={(e) => setBook({ ...book, isbn: e.target.value })}
             error={!isBookISBNValid}
             variant="outlined"
+            disabled={loading}
           />
           <TextField
             fullWidth
@@ -258,6 +268,7 @@ const EditBook: React.FC<EditBookProps> = ({ create }) => {
             InputLabelProps={{
               shrink: true,
             }}
+            disabled={loading}
           />
         </Stack>
 
@@ -269,6 +280,7 @@ const EditBook: React.FC<EditBookProps> = ({ create }) => {
           value={book.description}
           onChange={(e) => setBook({ ...book, description: e.target.value })}
           variant="outlined"
+          disabled={loading}
         />
 
         <Stack direction="row" sx={{ width: "100%" }} spacing={2}>
@@ -279,6 +291,7 @@ const EditBook: React.FC<EditBookProps> = ({ create }) => {
               value={book.genre}
               label="Genre"
               onChange={(e) => setBook({ ...book, genre: Number(e.target.value) })}
+              disabled={loading}
             >
               <MenuItem key={0} value={0}>---</MenuItem>
               {genres.map((genre, index) => (
@@ -297,23 +310,40 @@ const EditBook: React.FC<EditBookProps> = ({ create }) => {
                 page_count: Math.max(Number(e.target.value), 1),
               })
             }
+            disabled={loading}
           />
         </Stack>
+        
+        <Stack direction="row" sx={{ width: "100%" }} spacing={2}>
+          <FormControl fullWidth>
+            <InputLabel id="language-select-label">Language</InputLabel>
+            <Select
+              labelId="language-select-label"
+              value={book.language}
+              label="Language"
+              onChange={(e) => setBook({ ...book,language: Number(e.target.value) })}
+              disabled={loading}
+            >
+              <MenuItem key={0} value={0}>---</MenuItem>
+              {languages.map((language, index) => (
+                <MenuItem key={index+1} value={language.languageID}>{language.name}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
 
-        <FormControl fullWidth>
-          <InputLabel id="language-select-label">Language</InputLabel>
-          <Select
-            labelId="language-select-label"
-            value={book.language}
-            label="Language"
-            onChange={(e) => setBook({ ...book,language: Number(e.target.value) })}
-          >
-            <MenuItem key={0} value={0}>---</MenuItem>
-            {languages.map((language, index) => (
-              <MenuItem key={index+1} value={language.languageID}>{language.name}</MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+          <TextField
+            label="Number of copies"
+            type="number"
+            value={book.total_copies}
+            onChange={(e) =>
+              setBook({
+                ...book,
+                total_copies: Math.max(Number(e.target.value), 0),
+              })
+            }
+            disabled={loading}
+          />
+        </Stack>
 
         <List
           sx={{
@@ -340,6 +370,7 @@ const EditBook: React.FC<EditBookProps> = ({ create }) => {
                 size="small"
                 variant="contained"
                 onClick={() => setSelectAuthor(true)}
+                disabled={loading}
               >
                 Add
               </Button>
@@ -360,6 +391,7 @@ const EditBook: React.FC<EditBookProps> = ({ create }) => {
                 <Chip
                   label="-"
                   onClick={() => handleRemoveAuthor(index)}
+                  disabled={loading}
                 ></Chip>
               }
             >
@@ -367,15 +399,19 @@ const EditBook: React.FC<EditBookProps> = ({ create }) => {
             </ListItem>
           ))}
         </List>
-
-        <Button
-          sx={{ mt: "10px" }}
-          variant="contained"
-          disabled={!isBookISBNValid || book.title.length == 0}
-          onClick={handleSaveBook}
-        >
-          {create ? "Create" : "Save"}
-        </Button>
+        
+        {loading ? (
+          <CircularProgress sx={{ mt: "10px" }}/>
+        ) : (
+          <Button
+            sx={{ mt: "10px" }}
+            variant="contained"
+            disabled={!isBookISBNValid || book.title.length == 0}
+            onClick={handleSaveBook}
+          >
+            {create ? "Create" : "Save"}
+          </Button>
+        )}
 
         <AuthorDialog open={selectAuthor} onClose={handleCloseAuthorDialog} />
       </Box>

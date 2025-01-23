@@ -13,6 +13,9 @@ export type Book = {
   page_count: number;
   created_at: string;
   updated_at: string;
+  total_copies: number;
+  reserved_copies: number;
+  borrowed_copies: number;
   genre: number;
   language: number;
 };

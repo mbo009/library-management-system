@@ -16,7 +16,7 @@ from api.serializers import CreateUpdateBookSerializer
 from .utils.kafka_producer import send_kafka_message
 from django.db import transaction
 from django.contrib.auth.hashers import make_password
-from api.models import User, LibrarianKeys, Book, Author, Language, Genre, BookQueue
+from api.models import User, LibrarianKeys, Book, Author, Language, Genre, BookQueue, BorrowedBook
 from rest_framework.generics import (
     ListAPIView,
     RetrieveAPIView,
@@ -178,38 +178,6 @@ class CreateAuthorView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-"""
-class ReserveBook(APIView):
-    def post(self, request, *args, **kwargs):
-        serializer = BookQueueSerializer(data=request.data)
-        if serializer.is_valid():
-            try:
-                with transaction.atomic():
-                    book_queue = serializer.save()
-                    event_data = {
-                        "id": book_queue.book_queue_id,
-                        "user": book_queue.user.user_id,
-                        "book": book_queue.book.bookID,
-                        "queue_date": str(book_queue.queue_date),
-                        "turn": book_queue.turn,
-                    }
-                    if int(book_queue.turn) == 0:
-                        send_kafka_message(
-                            topic=settings.KAFKA_CONFIG["topics"].get(
-                                "reservation_created"
-                            ),
-                            key=str(book_queue.book_queue_id),
-                            value=event_data,
-                        )
-                return Response(serializer.data, status=status.HTTP_201_CREATED)
-            except Exception as e:
-                return Response(
-                    {"error": "Reservation could not be completed.", "details": str(e)},
-                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                )
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-"""
-
 
 class ReserveBook(APIView):
     def post(self, request, *args, **kwargs):
@@ -239,6 +207,51 @@ class ReserveBook(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
+
+class BorrowBook(APIView):
+    def post(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return JsonResponse({"error": "User is not authenticated"}, status=401)
+
+        try:
+            book_id = request.data['book_id']   # The book being borrowed
+            user_id = request.data['user_id']   # The user the book is being borrowed to
+        except Exception as e:
+            return Response(f"Bad request: {e}", status=status.HTTP_400_BAD_REQUEST)
+    	
+        try:
+            book = Book.objects.get(pk=book_id)
+            user = User.objects.get(pk=user_id)
+        except Book.DoesNotExist:
+            return Response(f"Book could not be found", status=status.HTTP_404_NOT_FOUND)
+        except User.DoesNotExist:
+            return Response(f"User could not be found", status=status.HTTP_404_NOT_FOUND)
+ 
+        book_queue = BookQueue.objects.filter(user=user, book=book)
+        if not book_queue.exists():
+            return Response(f"Reservation could not be found", status=status.HTTP_404_NOT_FOUND)
+
+        try:
+            with transaction.atomic():
+                # Delete from reservation queue
+                book_queue.delete()
+
+                # Update inventory
+                book.reserved_copies = max(book.reserved_copies - 1, 0)
+                book.borrowed_copies = min(book.borrowed_copies + 1, book.total_copies)
+                book.save()
+
+                # Borrow book
+                borrowed = BorrowedBook(user=user, book=book, status='Picked up')
+                borrowed.save()
+
+            return Response({}, status=status.HTTP_201_CREATED)
+
+        except Exception as e:
+            return Response(
+                {"error": "Borrowing could not be completed.", "details": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
 def find_book(request):
     query = request.GET.get("query")

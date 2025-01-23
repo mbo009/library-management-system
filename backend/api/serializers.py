@@ -10,11 +10,6 @@ class AuthorSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
-class UserSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = User
-        fields = "__all__"
-
 
 class BookSerializer(serializers.ModelSerializer):
     authors = AuthorSerializer(many=True)
@@ -32,8 +27,7 @@ class CreateUpdateBookSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Book
-        # Exclude auto-generated fields since they are handled automatically
-        exclude = ['created_at', 'updated_at']
+        exclude = ['created_at', 'updated_at', 'reserved_copies', 'borrowed_copies']
     
     def create(self, validated_data):
         authors_data = validated_data.pop('authors')
@@ -49,6 +43,15 @@ class CreateUpdateBookSerializer(serializers.ModelSerializer):
             instance.authors.set(authors_data)
         instance.save()
         return instance
+
+
+
+class UserSerializer(serializers.ModelSerializer):
+    borrowed_books = BookSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = User
+        fields = "__all__"
 
 
 def get_max_turn_for_book(book_id):

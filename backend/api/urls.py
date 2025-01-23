@@ -19,6 +19,7 @@ urlpatterns = [
     path('author/<int:pk>', views.AuthorDetailView.as_view(), name='author_detail'),
     path('create-author/', views.CreateAuthorView.as_view(), name='create_author'),
     path('reserve-book/', views.ReserveBook.as_view(), name='reserve_book'),
+    path('borrow-book/', views.BorrowBook.as_view(), name='borrow_book'),
     path('create_book/', views.BookCreateView.as_view(), name='create_book'),
     path('update_book/<int:pk>/', views.BookUpdateView.as_view(), name='update_book'),
     path('create_author/', views.AuthorCreateView.as_view(), name='create_author'),

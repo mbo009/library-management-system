@@ -39,6 +39,9 @@ interface Book {
   updated_at: string;
   genre: number;
   language: number;
+  total_copies: number;
+  reserved_copies: number;
+  borrowed_copies: number;
 }
 
 interface BookQueue {
@@ -79,25 +82,29 @@ const Book: React.FC<BookProps> = ({ book, isAdmin }) => {
   
   const [selected, setSelected] = useState<number | null>(null);
   const [bookQueue, setBookQueue] = useState<Array<BookQueue>>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  const fetchBookQueue = async () => {
+    try {
+      const response = await fetch(`http://localhost:8000/api/book_queue/${book.bookID}/`);
+      setLoading(false);
+
+      if (!response.ok) {
+        throw Error(`Error ${response.status}`);
+      }
+
+      const numBooksAvailable = book.total_copies - book.borrowed_copies;
+
+      let bookQueue: Array<BookQueue> = await response.json();
+      bookQueue = bookQueue.sort((a, b) => a.turn - b.turn);
+      setBookQueue(bookQueue.slice(0, numBooksAvailable));
+    } 
+    catch (error) {
+      
+    }
+  }
 
   useEffect(() => {
-
-    const fetchBookQueue = async () => {
-      try {
-        const response = await fetch(`http://localhost:8000/api/book_queue/${book.bookID}/`);
-        setLoading(false);
-
-        if (!response.ok) {
-          throw Error(`Error ${response.status}`);
-        }
-        const data = await response.json();
-        setBookQueue(data);
-      } 
-      catch (error) {
-        
-      }
-    }
 
     setSelected(null);
     setLoading(true);
@@ -128,6 +135,42 @@ const Book: React.FC<BookProps> = ({ book, isAdmin }) => {
     } catch (error) {
       alert("Failed to reserve book " + error);
     }
+  }
+
+  const handleBorrowBook = () => {
+
+    if (selected === null)
+      return;
+
+    const borrowBook = async () => {
+      try {
+        const queueEntry = bookQueue[selected];
+
+        const csrftoken = getCookie('csrftoken');
+        if (!csrftoken)
+          throw Error(`Error`);
+
+        const response = await fetch(`http://localhost:8000/api/borrow-book/`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            'X-CSRFToken': csrftoken,
+          },
+          credentials: "include",
+          
+          body: JSON.stringify({ book_id: book.bookID, user_id: queueEntry.user_id }),
+        });
+
+        if (!response.ok) {
+          throw Error(`Error ${response.status}`);
+        }
+      } catch (error) {
+        alert("Failed to borrow book " + error);
+      }
+    }
+
+    setLoading(true);
+    borrowBook();
   }
 
   if (book == null) return <>Loading...</>;
@@ -193,6 +236,9 @@ const Book: React.FC<BookProps> = ({ book, isAdmin }) => {
                 ? book.language_name + " (" + book.language_shortcut + ")"
                 : ""}
             </Typography>
+            <Typography>
+              <b>Borrowed copies: </b> {book.borrowed_copies}
+            </Typography>
           </Box>
           <Box flex={1} textAlign="left">
             <Typography sx={{ textTransform: "capitalize" }}>
@@ -200,6 +246,12 @@ const Book: React.FC<BookProps> = ({ book, isAdmin }) => {
             </Typography>
             <Typography>
               <b>Pages: </b> {book.page_count}
+            </Typography>
+            <Typography>
+              <b>Copies: </b> {book.total_copies}
+            </Typography>
+            <Typography>
+              <b>Reservations: </b> {book.reserved_copies}
             </Typography>
           </Box>
         </Box>
@@ -257,6 +309,7 @@ const Book: React.FC<BookProps> = ({ book, isAdmin }) => {
                 sx={{ mt: "25px" }}
                 variant="contained"
                 disabled={selected === null}
+                onClick={() => handleBorrowBook()}
               >
                 Borrow
               </Button>
