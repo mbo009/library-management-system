@@ -16,7 +16,7 @@ from api.serializers import CreateUpdateBookSerializer
 from .utils.kafka_producer import send_kafka_message
 from django.db import transaction
 from django.contrib.auth.hashers import make_password
-from api.models import User, LibrarianKeys, Book, Author, Language, Genre, BookQueue
+from api.models import User, LibrarianKeys, Book, Author, Language, Genre, BookQueue, BorrowedBook
 from rest_framework.generics import (
     ListAPIView,
     RetrieveAPIView,
@@ -28,8 +28,12 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
 from django.conf import settings
+from django.db.models import Q
+from datetime import timedelta, date
+from .reservation_logic import verify_inventory
 import json
 import logging
+
 
 logger = logging.getLogger(__name__)
 
@@ -213,35 +217,74 @@ class ReserveBook(APIView):
 
 class ReserveBook(APIView):
     def post(self, request, *args, **kwargs):
+        logger.info("ReserveBook POST request received")
 
         try:
             book_id = request.data['book_id']
             user_id = request.user.user_id
+            logger.info(f"Received data: book_id={book_id}, user_id={user_id}")
         except Exception as e:
+            logger.error(f"Bad request: {e}")
             return Response(f"Bad request: {e}", status=status.HTTP_400_BAD_REQUEST)
-    	
+
         try:
-            event_data = {
-                "book_id": book_id,
-                "user_id": user_id,
-            }
-            send_kafka_message(
-                topic=settings.KAFKA_CONFIG["topics"].get(
-                    "reservation_created"
-                ),
-                key=str(book_id) + ";" + str(user_id),
-                value=event_data,
+            queued = BookQueue.objects.filter(book_id=book_id).order_by('queue_date')
+            if queued.filter(user_id=user_id).exists():
+                logger.info(f"User {user_id} is already in the queue for book_id={book_id}")
+                return Response(
+                    {"status": "reserved", "message": "User is already in the queue"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            logger.info(f"Queue for book_id={book_id} fetched: {len(queued)} entries")
+
+            if len(queued) == 0:
+                logger.info(f"No queue found for book_id={book_id}, checking inventory")
+                if verify_inventory(book_id):
+                    logger.info(f"Inventory available for book_id={book_id}")
+                    event_data = {
+                        "book_id": book_id,
+                        "user_id": user_id,
+                    }
+                    send_kafka_message(
+                        topic=settings.KAFKA_CONFIG["topics"].get(
+                            "reservation_created"
+                        ),
+                        key=str(book_id) + ";" + str(user_id),
+                        value=event_data,
+                    )
+                    logger.info(f"Kafka message sent for book_id={book_id}, user_id={user_id}")
+                    queue_date = date.today()
+                else:
+                    logger.warning(f"No inventory available for book_id={book_id}")
+                    queue_date = BorrowedBook.objects.filter(book_id=book_id).order_by('expected_return_date').first().expected_return_date
+                turn = 0
+            else:
+                turn = queued.last().turn + 1
+                queue_date = queued.last().queue_date + timedelta(days=14)
+                logger.info(f"Queue updated for book_id={book_id}: turn={turn}, queue_date={queue_date}")
+
+            book_queue = BookQueue(
+                user=User.objects.get(user_id=user_id),
+                book=Book.objects.get(bookID=book_id),
+                queue_date=queue_date,
+                turn=turn,
             )
-            return Response({}, status=status.HTTP_201_CREATED)
+            book_queue.save()
+            logger.info(f"BookQueue entry created: {book_queue}")
+
+            return Response({"status": "succes", "available_date": queue_date, "turn": turn}, status=status.HTTP_201_CREATED)
         except Exception as e:
+            logger.error(f"Reservation failed for book_id={book_id}, user_id={user_id}. Error: {e}")
             return Response(
                 {"error": "Reservation could not be completed.", "details": str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
-
 def find_book(request):
+    logger.info("Received request to find_book")
     query = request.GET.get("query")
+    logger.debug(f"Query parameter received: {query}")
+
     if query:
         m_query = MultiMatch(
             query=query,
@@ -254,16 +297,21 @@ def find_book(request):
             ],
             fuzziness="AUTO",
         )
+        logger.debug(f"Constructed MultiMatch query: {m_query}")
+
         try:
             books = BookDocument.search().query(m_query).to_queryset()
+            logger.info(f"Found {len(books)} books matching the query")
             serializer = BookSerializer(books, many=True)
+            logger.debug(f"Serialized books data: {serializer.data}")
             return JsonResponse(serializer.data, safe=False)
         except Exception as e:
+            logger.error(f"Error occurred while searching for books: {e}", exc_info=True)
             return JsonResponse(
                 {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
-
     else:
+        logger.warning("No search query provided in the request")
         return JsonResponse(
             {"message": "No search query provided."}, status=status.HTTP_400_BAD_REQUEST
         )

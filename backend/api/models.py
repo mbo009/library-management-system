@@ -17,8 +17,8 @@ class Genre(models.Model):
 
     class Meta:
         db_table = "genres"
-        
-        
+
+
 class Language(models.Model):
     languageID = models.AutoField(primary_key=True, db_column="languageid")
     name = models.CharField(max_length=100, unique=True)
@@ -26,7 +26,7 @@ class Language(models.Model):
 
     class Meta:
         db_table = "languages"
-        
+
 
 class Book(models.Model):
     bookID = models.AutoField(primary_key=True, db_column="bookid")
@@ -120,13 +120,14 @@ class BorrowedBook(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     book = models.ForeignKey(Book, on_delete=models.CASCADE)
     borrowed_date = models.DateField(default=date.today)
+    expected_return_date = models.DateField()
     returned_date = models.DateField(blank=True, null=True)
     status = models.CharField(max_length=50, choices=[
         ('Reserved', 'Resevered'),
         ('Picked up', 'Picked up'),
         ('Returned', 'Returned'),
         ('Cancelled', 'Cancelled'),
-    ], default='Reserved') 
+    ], default='Reserved')
 
     def is_returned(self):
         return self.returned_date is not None
@@ -142,18 +143,17 @@ class BookQueue(models.Model):
     book = models.ForeignKey(Book, on_delete=models.CASCADE)
     queue_date = models.DateField(default=date.today)
     turn = models.IntegerField()
-    
+
 
     def __str__(self):
         return f"{self.book.title} by {self.user.first_name} {self.user.last_name}"
-    
+
 
 class Inventory(models.Model):
     inventoryID = models.AutoField(primary_key=True, db_column="inventoryid")
-    book = models.ForeignKey(Book, on_delete=models.CASCADE)  
-    total_copies = models.IntegerField(default=0)  
-    available_copies = models.IntegerField(default=0)  
+    book = models.ForeignKey(Book, on_delete=models.CASCADE)
+    total_copies = models.IntegerField(default=0)
+    available_copies = models.IntegerField(default=0)
 
     class Meta:
         db_table = "inventory"
-        
