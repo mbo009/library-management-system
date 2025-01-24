@@ -2,37 +2,90 @@ import UserDetails from "./UserDetails";
 import BookDetails from "./Book.tsx";
 import { Book } from "./types/Book";
 import { UserProfile } from "./types/UserProfile";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Box, Typography, Button, IconButton } from "@mui/material";
-import CloseIcon from '@mui/icons-material/Close';
+import CloseIcon from "@mui/icons-material/Close";
+import EditAuthor from "./librarian/Author";
+import EditLanguages from "./librarian/Languages";
+import EditGenres from "./librarian/Genres";
+import EditBook from "./librarian/Book";
+import transition from "./utils/transition.tsx";
 
 type AdminPanelProps = {
   selectedItem: Book | UserProfile | null;
   setSelectedItem: any;
 };
 
-const AdminPanel: React.FC<AdminPanelProps> = ({ selectedItem, setSelectedItem }) => {
+const AdminPanel: React.FC<AdminPanelProps> = ({
+  selectedItem,
+  setSelectedItem,
+}) => {
   const isUserProfileType = (
     item: Book | UserProfile | null
   ): item is UserProfile => {
-    return item !== null && "user_id" in item; // Ensure this matches a unique property of UserProfile
+    return item !== null && "user_id" in item;
   };
-  const isBookType = (
-    item: Book | UserProfile | null
-  ): item is Book => {
-    return item !== null && "bookID" in item; // Ensure this matches a unique property of UserProfile
+  const isBookType = (item: Book | UserProfile | null): item is Book => {
+    return item !== null && "bookID" in item;
   };
+  // const [isEditingBook, setIsEditingBook] = React.useState(false);
+  const [isEditingAuthor, setIsEditingAuthor] = useState(false);
+  const [isEditingLanguage, setIsEditingLanguage] = useState(false);
+  const [isEditingGenre, setIsEditingGenre] = useState(false);
+  const [isEditingBook, setIsEditingBook] = useState(false);
+  const [isCreatingBook, setIsCreatingBook] = useState(false);
+  const [editedBook, setEditedBook] = useState<number | undefined>(undefined);
 
-  console.log("SLS", selectedItem);
+  useEffect(() => {
+    setSelectedItem(null);
+  }, [isEditingBook]);
 
-  if (!selectedItem) {
+  if (
+    !selectedItem &&
+    !isEditingAuthor &&
+    !isEditingLanguage &&
+    !isEditingGenre &&
+    !isEditingBook &&
+    !isCreatingBook
+  ) {
     return (
-      <Box p={3} alignContent={"center"} textAlign={"center"}>
-        <Typography variant="h6">Librarian Panel</Typography>
-        <Button onClick={() => window.open(`${window.location.origin}/librarian/new_book`)}>ADD NEW BOOK</Button>
-        <Button onClick={() => window.open(`${window.location.origin}/librarian/new_author`)}>ADD NEW AUTHOR</Button>
-        <Button onClick={() => window.open(`${window.location.origin}/librarian/languages`)}>ADD NEW LANGUAGE</Button>
-        <Button onClick={() => window.open(`${window.location.origin}/librarian/genres`)}>ADD NEW GENRE</Button>
+      <Box
+        p={10}
+        position={"relative"}
+        alignContent={"center"}
+        textAlign={"center"}
+        alignItems={"center"}
+        alignSelf={"center"}
+      >
+        <Typography variant="h2">Librarian Panel</Typography>
+        <Button
+          onClick={() => {
+            setIsCreatingBook(true);
+          }}
+        >
+          ADD NEW BOOK
+        </Button>
+        <Button
+          onClick={() => {
+            setIsEditingAuthor(true);
+          }}
+        >
+          ADD NEW AUTHOR
+        </Button>
+        <Button
+          onClick={() => {
+            setIsEditingLanguage(true);
+          }}
+        >
+          ADD NEW LANGUAGE
+        </Button>
+        <Button
+          onClick={() => {
+            setIsEditingGenre(true);
+          }}
+        >
+          ADD NEW GENRE
+        </Button>
       </Box>
     );
   }
@@ -43,28 +96,36 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ selectedItem, setSelectedItem }
   }*/
 
   return (
-    <>
+    <Box
+      p={3}
+      position={"relative"}
+      alignContent={"center"}
+      textAlign={"center"}
+      alignItems={"center"}
+      alignSelf={"center"}
+    >
       <IconButton
-          aria-label="close"
-          onClick={() => setSelectedItem(null)}
-          sx={(theme) => ({
-            position: 'absolute',
-            right: 32,
-            top: 32,
-            color: theme.palette.grey[500],
-            zIndex: 100,
-          })}
-        >
-          <CloseIcon />
+        aria-label="close"
+        onClick={() => {
+          setSelectedItem(null);
+          setIsEditingAuthor(false);
+          setIsEditingLanguage(false);
+          setIsEditingGenre(false);
+          setIsEditingBook(false);
+          setIsCreatingBook(false);
+        }}
+        sx={(theme) => ({
+          position: "absolute",
+          right: 32,
+          top: 32,
+          color: theme.palette.grey[500],
+          zIndex: 100,
+        })}
+      >
+        <CloseIcon />
       </IconButton>
-        
-      {(isUserProfileType(selectedItem)) && (
-        <Box sx={{mt: "25px" }}>
-          <UserDetails userData={selectedItem} />
-        </Box>
-      )}
 
-      {(isBookType(selectedItem)) && (
+      {isEditingAuthor && (
         <Box
           position="relative"
           display="flex"
@@ -72,13 +133,82 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ selectedItem, setSelectedItem }
           alignItems="center"
           justifyContent="center"
         >
-          <BookDetails book={selectedItem} isAdmin={true}/>
+          <EditAuthor create={true} />
         </Box>
       )}
-    </>
-  );
 
-  return null;
+      {isEditingLanguage && (
+        <Box
+          position="relative"
+          display="flex"
+          flexDirection="column"
+          alignItems="center"
+          justifyContent="center"
+        >
+          <EditLanguages />
+        </Box>
+      )}
+
+      {isEditingGenre && (
+        <Box
+          position="relative"
+          display="flex"
+          flexDirection="column"
+          alignItems="center"
+          justifyContent="center"
+        >
+          <EditGenres />
+        </Box>
+      )}
+
+      {isEditingBook && (
+        <Box
+          position="relative"
+          display="flex"
+          flexDirection="column"
+          alignItems="center"
+          justifyContent="center"
+        >
+          <EditBook create={false} bookID={editedBook} />
+        </Box>
+      )}
+
+      {isCreatingBook && (
+        <Box
+          position="relative"
+          display="flex"
+          flexDirection="column"
+          alignItems="center"
+          justifyContent="center"
+        >
+          <EditBook create={true} />
+        </Box>
+      )}
+
+      {isUserProfileType(selectedItem) && (
+        <Box sx={{ mt: "25px" }}>
+          <UserDetails userData={selectedItem} />
+        </Box>
+      )}
+
+      {isBookType(selectedItem) && (
+        <Box
+          position="relative"
+          display="flex"
+          flexDirection="column"
+          alignItems="center"
+          justifyContent="center"
+        >
+          <BookDetails
+            book={selectedItem}
+            editBook={setIsEditingBook}
+            isAdmin={true}
+            setEditedBook={setEditedBook}
+          />
+        </Box>
+      )}
+    </Box>
+  );
 };
 
-export default AdminPanel;
+export default transition(AdminPanel);

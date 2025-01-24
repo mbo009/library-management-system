@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
 import {
   TextField,
   FormControl,
@@ -17,9 +16,12 @@ import {
   ListItem,
   ListSubheader,
   ListItemText,
+  CircularProgress,
+  Snackbar,
+  Alert,
 } from "@mui/material";
 import transition from "../utils/transition";
-
+import CoverFrame from "./CoverFrame";
 import AuthorDialog from "./AuthorDialog";
 
 interface Author {
@@ -69,18 +71,22 @@ function initBook(): Book {
 
 type EditBookProps = {
   create: boolean;
+  bookID?: number;
 };
 
-const EditBook: React.FC<EditBookProps> = ({ create }) => {
+const EditBook: React.FC<EditBookProps> = ({ create, bookID }) => {
   const [book, setBook] = useState<Book>(initBook());
   const [languages, setLanguages] = useState<Array<Language>>([]);
   const [genres, setGenres] = useState<Array<Genre>>([]);
   const [selectedCoverPhoto, setSelectedCoverPhoto] = useState<File | null>(
     null
   );
-
-  const [searchParams, _] = useSearchParams();
-  const bookID = searchParams.get("book_id");
+  const [loading, setLoading] = useState<boolean>(false);
+  const [open, setOpen] = useState<boolean>(false);
+  const [alertSeverity, setAlertSeverity] = useState<"success" | "error">(
+    "success"
+  );
+  const [alertMessage, setAlertMessage] = useState<string>("");
 
   const [selectAuthor, setSelectAuthor] = useState(false);
 
@@ -90,39 +96,6 @@ const EditBook: React.FC<EditBookProps> = ({ create }) => {
     const attachedFile = event.target.files?.[0];
     if (attachedFile) {
       setSelectedCoverPhoto(attachedFile);
-    }
-  };
-
-  const uploadMedia = async (attachedFile: File): Promise<string | null> => {
-    if (!attachedFile) return null;
-
-    const formData = new FormData();
-    formData.append("cover", attachedFile);
-    formData.append("data", JSON.stringify({ bookID: bookID }));
-
-    try {
-      const response = await fetch("http://localhost:8000/api/upload_cover/", {
-        method: "POST",
-        credentials: "include",
-        body: formData,
-      });
-      if (!response.ok) {
-        alert("Failed to upload media: " + response.statusText);
-        return null;
-      }
-
-      const data = await response.json();
-      console.log(data);
-      if (!book.coverPhoto.includes(data.mediaPath)) {
-        setBook({
-          ...book,
-          coverPhoto: data.mediaPath,
-        });
-      }
-      return data.mediaPath;
-    } catch (error) {
-      alert("Failed to upload media: " + error);
-      return null;
     }
   };
 
@@ -213,27 +186,39 @@ const EditBook: React.FC<EditBookProps> = ({ create }) => {
   };
 
   const handleSaveBook = async () => {
+    setLoading(true);
     try {
-      let coverMediaPath = book.coverPhoto;
+      // Create a FormData object to hold the book data and file
+      const formData = new FormData();
+
+      // Append the book details to the FormData
+      formData.append("title", book.title);
+      formData.append("description", book.description);
+      formData.append("isbn", book.isbn.replace(/[-\s]/g, ""));
+      formData.append("published_date", book.published_date || "");
+      formData.append("page_count", book.page_count.toString());
+      formData.append("genre", book.genre.toString());
+      formData.append("language", book.language.toString());
+
+      // Append the authors (as a list of primary keys)
+      formData.append(
+        "authors",
+        JSON.stringify(book.authors.map((author) => author.id))
+      );
+
+      // If a new cover photo is selected, append it to FormData
       if (selectedCoverPhoto) {
-        const uploadedPath = await uploadMedia(selectedCoverPhoto);
-        if (uploadedPath) {
-          coverMediaPath = uploadedPath;
-        }
+        formData.append("cover", selectedCoverPhoto);
+      } else if (book.coverPhoto) {
+        formData.append("cover", book.coverPhoto); // If no new cover, send the existing one
       }
 
-      const requestBody = {
-        authors: book.authors.map((author) => author.id),
-        title: book.title,
-        description: book.description,
-        isbn: book.isbn,
-        published_date: book.published_date,
-        page_count: book.page_count,
-        genre: book.genre,
-        language: book.language,
-        cover: coverMediaPath,
-      };
+      // Log the FormData to ensure all fields are present
+      for (let [key, value] of formData.entries()) {
+        console.log(key, value);
+      }
 
+      // Determine API endpoint and method based on whether we are creating or updating
       let api, method;
       if (create) {
         api = "http://localhost:8000/api/create_book/";
@@ -243,213 +228,261 @@ const EditBook: React.FC<EditBookProps> = ({ create }) => {
         method = "PUT";
       }
 
+      // Send the data to the backend
       const response = await fetch(api, {
         method: method,
-        body: JSON.stringify(requestBody),
-        headers: {
-          "Content-Type": "application/json",
-        },
+        body: formData, // Send the FormData as the request body
       });
 
       if (!response.ok) {
+        const error = await response.json();
+        console.error("Error response from server:", error);
         throw new Error("Failed to save book details.");
       }
 
-      console.log("Book saved successfully.");
+      setAlertSeverity("success");
+      setAlertMessage("Book saved successfully.");
+      setOpen(true);
     } catch (error) {
       console.error("Error saving book:", error);
+      setAlertSeverity("error");
+      setAlertMessage("Failed to save book details.");
+      setOpen(true);
+    } finally {
+      setLoading(false);
     }
+  };
+
+  const handleCloseSnackbar = (
+    _event?: React.SyntheticEvent | Event,
+    reason?: string
+  ) => {
+    if (reason === "clickaway") {
+      return;
+    }
+    setOpen(false);
   };
 
   const isBookISBNValid = isValidISBN(book.isbn);
 
   return (
-    <Container maxWidth="sm" sx={{ paddingY: 5 }}>
-      <Box
-        position="relative"
-        display="flex"
-        flexDirection="column"
-        alignItems="center"
-        justifyContent="center"
-        gap={2}
-      >
-        <Typography variant="h2" sx={{ mb: "15px" }}>
-          {create ? "Create a new book" : "Edit book"}
-        </Typography>
-
-        <TextField
-          label="Title"
-          fullWidth
-          multiline
-          rows={1}
-          value={book.title}
-          onChange={(e) => setBook({ ...book, title: e.target.value })}
-          variant="outlined"
-          error={book.title.length == 0}
-        />
-        <Stack direction="row" sx={{ width: "100%" }} spacing={2}>
+    <Container sx={{ paddingY: 5 }}>
+      <Stack direction="column" spacing={2} alignItems="center">
+        <Stack
+          direction="row"
+          spacing={2}
+          justifyContent={"center"}
+          alignContent={"center"}
+          width={"74%"}
+        >
           <TextField
-            fullWidth
-            label="ISBN"
+            label="Title"
             multiline
             rows={1}
-            value={book.isbn}
-            onChange={(e) => setBook({ ...book, isbn: e.target.value })}
-            error={!isBookISBNValid}
+            value={book.title}
+            onChange={(e) => setBook({ ...book, title: e.target.value })}
             variant="outlined"
+            error={book.title.length == 0}
+            sx={{ width: "80%" }}
           />
-          <TextField
-            fullWidth
-            label="Published"
-            type="date"
-            margin="normal"
-            color="secondary"
-            value={book.published_date !== null ? book.published_date : ""}
-            onChange={handlePublishedDateChange}
-            InputLabelProps={{
-              shrink: true,
-            }}
-          />
-        </Stack>
-
-        <TextField
-          label="Description"
-          fullWidth
-          multiline
-          rows={6}
-          value={book.description}
-          onChange={(e) => setBook({ ...book, description: e.target.value })}
-          variant="outlined"
-        />
-
-        <Stack direction="row" sx={{ width: "100%" }} spacing={2}>
-          <FormControl fullWidth>
-            <InputLabel id="genre-select-label">Genre</InputLabel>
-            <Select
-              labelId="genre-select-label"
-              value={book.genre}
-              label="Genre"
-              onChange={(e) =>
-                setBook({ ...book, genre: Number(e.target.value) })
-              }
-            >
-              <MenuItem key={0} value={0}>
-                ---
-              </MenuItem>
-              {genres.map((genre, index) => (
-                <MenuItem key={index + 1} value={genre.genreID}>
-                  {genre.name}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-
-          <TextField
-            label="Number of pages"
-            type="number"
-            value={book.page_count}
-            onChange={(e) =>
-              setBook({
-                ...book,
-                page_count: Math.max(Number(e.target.value), 1),
-              })
-            }
-          />
-        </Stack>
-
-        <FormControl fullWidth>
-          <InputLabel id="language-select-label">Language</InputLabel>
-          <Select
-            labelId="language-select-label"
-            value={book.language}
-            label="Language"
-            onChange={(e) =>
-              setBook({ ...book, language: Number(e.target.value) })
-            }
+          <Button
+            variant="contained"
+            disabled={!isBookISBNValid || book.title.length == 0 || loading}
+            onClick={handleSaveBook}
+            sx={{ width: "20%" }}
           >
-            <MenuItem key={0} value={0}>
-              ---
-            </MenuItem>
-            {languages.map((language, index) => (
-              <MenuItem key={index + 1} value={language.languageID}>
-                {language.name}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+            {loading ? (
+              <CircularProgress color="secondary" size={24} />
+            ) : create ? (
+              "Create"
+            ) : (
+              "Save"
+            )}
+          </Button>
+        </Stack>
+        <Stack direction="row" spacing={2}>
+          <Box
+            position="relative"
+            display="flex"
+            flexDirection="column"
+            alignItems="center"
+            justifyContent="center"
+            gap={2}
+          >
+            <Stack direction="row" sx={{ width: "420px" }} spacing={2}>
+              <TextField
+                fullWidth
+                label="ISBN"
+                multiline
+                rows={1}
+                value={book.isbn}
+                onChange={(e) => setBook({ ...book, isbn: e.target.value })}
+                error={!isBookISBNValid}
+                variant="outlined"
+              />
+              <TextField
+                fullWidth
+                label="Published"
+                type="date"
+                margin="normal"
+                color="secondary"
+                value={book.published_date !== null ? book.published_date : ""}
+                onChange={handlePublishedDateChange}
+                InputLabelProps={{
+                  shrink: true,
+                }}
+              />
+            </Stack>
 
-        <List
-          sx={{
-            width: "100%",
-            alignItems: "center",
-            border: 1,
-            borderColor: "grey.300",
-            overflow: "auto",
-            height: "25vh",
-            padding: 0,
-            marginBottom: "40px",
-          }}
-        >
-          <ListSubheader sx={{ height: "38px", paddingY: "3px" }}>
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-              }}
-            >
-              <Typography>Authors</Typography>
-              <Button
-                size="small"
-                variant="contained"
-                onClick={() => setSelectAuthor(true)}
-              >
-                Add
-              </Button>
-            </Box>
-          </ListSubheader>
-          <Divider />
-          {book.authors.map((author, index) => (
-            <ListItem
-              key={index}
-              sx={{
-                backgroundColor: index % 2 === 0 ? "grey.100" : "white",
-                "&:hover": {
-                  backgroundColor: "grey.200",
-                },
-                height: "40px",
-              }}
-              secondaryAction={
-                <Chip
-                  label="-"
-                  onClick={() => handleRemoveAuthor(index)}
-                ></Chip>
+            <TextField
+              label="Description"
+              fullWidth
+              multiline
+              rows={6}
+              value={book.description}
+              onChange={(e) =>
+                setBook({ ...book, description: e.target.value })
               }
+              variant="outlined"
+            />
+
+            <Stack direction="row" sx={{ width: "100%" }} spacing={2}>
+              <FormControl fullWidth>
+                <InputLabel id="genre-select-label">Genre</InputLabel>
+                <Select
+                  labelId="genre-select-label"
+                  value={book.genre}
+                  label="Genre"
+                  onChange={(e) =>
+                    setBook({ ...book, genre: Number(e.target.value) })
+                  }
+                >
+                  <MenuItem key={0} value={0}>
+                    ---
+                  </MenuItem>
+                  {genres.map((genre, index) => (
+                    <MenuItem key={index + 1} value={genre.genreID}>
+                      {genre.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+
+              <TextField
+                label="Number of pages"
+                type="number"
+                value={book.page_count}
+                onChange={(e) =>
+                  setBook({
+                    ...book,
+                    page_count: Math.max(Number(e.target.value), 1),
+                  })
+                }
+              />
+            </Stack>
+
+            <FormControl fullWidth>
+              <InputLabel id="language-select-label">Language</InputLabel>
+              <Select
+                labelId="language-select-label"
+                value={book.language}
+                label="Language"
+                onChange={(e) =>
+                  setBook({ ...book, language: Number(e.target.value) })
+                }
+              >
+                <MenuItem key={0} value={0}>
+                  ---
+                </MenuItem>
+                {languages.map((language, index) => (
+                  <MenuItem key={index + 1} value={language.languageID}>
+                    {language.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            <List
+              sx={{
+                width: "100%",
+                alignItems: "center",
+                border: 1,
+                borderColor: "grey.300",
+                overflow: "auto",
+                height: "25vh",
+                padding: 0,
+                marginBottom: "40px",
+              }}
             >
-              <ListItemText primary={author.name} />
-            </ListItem>
-          ))}
-        </List>
-        <Button
-          variant="contained"
-          component="label"
-          sx={{ marginBottom: "16px" }}
-        >
-          ADD COVER PHOTO
-          <input type="file" hidden onChange={handleMediaChanged} />
-        </Button>
+              <ListSubheader sx={{ height: "38px", paddingY: "3px" }}>
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  }}
+                >
+                  <Typography>Authors</Typography>
+                  <Button
+                    size="small"
+                    variant="contained"
+                    onClick={() => setSelectAuthor(true)}
+                  >
+                    Add
+                  </Button>
+                </Box>
+              </ListSubheader>
+              <Divider />
+              {book.authors.map((author, index) => (
+                <ListItem
+                  key={index}
+                  sx={{
+                    backgroundColor: index % 2 === 0 ? "grey.100" : "white",
+                    "&:hover": {
+                      backgroundColor: "grey.200",
+                    },
+                    height: "40px",
+                  }}
+                  secondaryAction={
+                    <Chip
+                      label="-"
+                      onClick={() => handleRemoveAuthor(index)}
+                    ></Chip>
+                  }
+                >
+                  <ListItemText primary={author.name} />
+                </ListItem>
+              ))}
+            </List>
 
-        <Button
-          sx={{ mt: "10px" }}
-          variant="contained"
-          disabled={!isBookISBNValid || book.title.length == 0}
-          onClick={handleSaveBook}
+            <AuthorDialog
+              open={selectAuthor}
+              onClose={handleCloseAuthorDialog}
+            />
+          </Box>
+          <Stack direction="column" spacing={2}>
+            <CoverFrame
+              selectedCoverPhoto={selectedCoverPhoto}
+              book={book}
+              handleMediaChanged={handleMediaChanged}
+            />
+          </Stack>
+        </Stack>
+      </Stack>
+      <Snackbar
+        open={open}
+        autoHideDuration={6000}
+        onClose={handleCloseSnackbar}
+      >
+        <Alert
+          onClose={handleCloseSnackbar}
+          severity={alertSeverity}
+          variant="filled"
+          sx={{ width: "100%" }}
         >
-          {create ? "Create" : "Save"}
-        </Button>
-
-        <AuthorDialog open={selectAuthor} onClose={handleCloseAuthorDialog} />
-      </Box>
+          {alertMessage}
+        </Alert>
+      </Snackbar>
     </Container>
   );
 };
@@ -457,36 +490,10 @@ const EditBook: React.FC<EditBookProps> = ({ create }) => {
 function isValidISBN(isbn: string): boolean {
   const cleaned = isbn.replace(/[-\s]/g, "");
 
-  if (cleaned.length === 10) {
-    return isValidISBN10(cleaned);
-  } else if (cleaned.length === 13) {
-    return isValidISBN13(cleaned);
+  if (cleaned.length === 10 || cleaned.length === 13) {
+    return true;
   }
   return false;
-}
-
-function isValidISBN10(isbn: string): boolean {
-  if (!/^\d{9}[\dX]$/.test(isbn)) {
-    return false;
-  }
-  let sum = 0;
-  for (let i = 0; i < 9; i++) {
-    sum += parseInt(isbn[i]) * (10 - i);
-  }
-  sum += isbn[9] === "X" ? 10 : parseInt(isbn[9]);
-  return sum % 11 === 0;
-}
-
-function isValidISBN13(isbn: string): boolean {
-  if (!/^\d{13}$/.test(isbn)) {
-    return false;
-  }
-  let sum = 0;
-  for (let i = 0; i < 13; i++) {
-    const digit = parseInt(isbn[i]);
-    sum += i % 2 === 0 ? digit : digit * 3;
-  }
-  return sum % 10 === 0;
 }
 
 export default transition(EditBook);

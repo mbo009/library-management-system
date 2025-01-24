@@ -6,6 +6,11 @@ from django.db import transaction
 from django.core.files.storage import default_storage
 import os
 from api.utils.media import get_cover_path
+import logging
+import ast
+from django.conf import settings
+
+logger = logging.getLogger(__name__)
 
 
 class AuthorSerializer(serializers.ModelSerializer):
@@ -27,50 +32,79 @@ class BookSerializer(serializers.ModelSerializer):
     language_shortcut = serializers.CharField(
         source="language.shortcut", read_only=True
     )
+    cover_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Book
         fields = "__all__"
 
+    def get_cover_url(self, obj):
+        if obj.cover_path:
+            return f"{settings.MEDIA_URL}{obj.cover_path.lstrip('/')}"
+        return None
+
 
 class CreateUpdateBookSerializer(serializers.ModelSerializer):
-    authors = serializers.PrimaryKeyRelatedField(
-        many=True, queryset=Author.objects.all()
-    )
+    authors = serializers.CharField()
+    cover = serializers.ImageField(required=False)
 
     class Meta:
         model = Book
-        # Exclude auto-generated fields since they are handled automatically
         exclude = ["created_at", "updated_at"]
 
+    def validate_authors(self, value):
+        try:
+            authors_data = ast.literal_eval(value)
+            if not isinstance(authors_data, list):
+                raise serializers.ValidationError("Authors must be a list.")
+            if not all(isinstance(author, int) for author in authors_data):
+                raise serializers.ValidationError("All author IDs must be integers.")
+            return authors_data
+        except (ValueError, SyntaxError):
+            raise serializers.ValidationError("Invalid list format for authors.")
+
     def create(self, validated_data):
+        logger.info(f"Data: {validated_data}")
         authors_data = validated_data.pop("authors")
-        cover = self.context["request"].FILES.get("cover")
+        cover = validated_data.pop("cover", None)
+
         with transaction.atomic():
             book = Book.objects.create(**validated_data)
-            book.authors.set(authors_data)  # Set the authors many-to-many relationship
+            logger.info(f"authors: {authors_data}")
+            authors = Author.objects.filter(id__in=authors_data)
+            book.authors.set(authors)
+
             if cover:
                 saved_path = default_storage.save(get_cover_path(book.bookID), cover)
                 cover_file_name = os.path.basename(saved_path)
                 book.cover_path = cover_file_name
                 book.save()
+
         return book
 
     def update(self, instance, validated_data):
         authors_data = validated_data.pop("authors", None)
-        cover = self.context["request"].FILES.get("cover")
+        cover = validated_data.pop("cover", None)
+
         with transaction.atomic():
             for attr, value in validated_data.items():
                 setattr(instance, attr, value)
             if authors_data is not None:
-                instance.authors.set(authors_data)
+                authors = Author.objects.filter(id__in=authors_data)
+                instance.authors.set(authors)
             if cover:
+                if instance.cover_path:
+                    cover_path = os.path.join(settings.MEDIA_ROOT, instance.cover_path)
+                    if os.path.exists(cover_path):
+                        os.remove(cover_path)
+
                 saved_path = default_storage.save(
                     get_cover_path(instance.bookID), cover
                 )
                 cover_file_name = os.path.basename(saved_path)
                 instance.cover_path = cover_file_name
             instance.save()
+
         return instance
 
 
