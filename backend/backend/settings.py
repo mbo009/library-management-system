@@ -18,7 +18,8 @@ load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-
+MEDIA_ROOT = os.path.join(BASE_DIR, "media")
+MEDIA_URL = "/covers/"
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
@@ -44,7 +45,7 @@ INSTALLED_APPS = [
     "corsheaders",
     "api",
     "django_elasticsearch_dsl",
-    'rest_framework',
+    "rest_framework",
 ]
 
 MIDDLEWARE = [
@@ -146,8 +147,8 @@ STATIC_URL = "static/"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 CORS_ALLOWED_ORIGINS = [
-    'http://localhost:3000',
-    'http://localhost:5173',
+    "http://localhost:3000",
+    "http://localhost:5173",
 ]
 
 SECURE_SSL_REDIRECT = False  # Disable HTTPS redirect for development
@@ -175,24 +176,25 @@ LOGGING = {
 }
 
 AUTHENTICATION_BACKENDS = [
-    'django.contrib.auth.backends.ModelBackend',
+    "django.contrib.auth.backends.ModelBackend",
 ]
 
-AUTH_USER_MODEL = 'api.User'
+AUTH_USER_MODEL = "api.User"
 
-SESSION_COOKIE_SAMESITE = 'Lax'
+SESSION_COOKIE_SAMESITE = "Lax"
 SESSION_COOKIE_SECURE = False
 SESSION_ENGINE = "django.contrib.sessions.backends.db"
 
-LOGIN_URL = '/api/sign_in/'
+LOGIN_URL = "/api/sign_in/"
 
 KAFKA_CONFIG = {
-    'bootstrap.servers': 'kafka:9092',
-    'topics': {'book_created' : 'book_created',
-               'author_created' : 'author_created',
-               'book_deleted' : 'book_deleted',
-               'reservation_created' : 'reservation_created',
-               'borrowing_created' : 'borrowing_created',
-               'borrowing_returned' : 'borrowing_returned',
-        }
+    "bootstrap.servers": "kafka:9092",
+    "topics": {
+        "book_created": "book_created",
+        "author_created": "author_created",
+        "book_deleted": "book_deleted",
+        "reservation_created": "reservation_created",
+        "borrowing_created": "borrowing_created",
+        "borrowing_returned": "borrowing_returned",
+    },
 }

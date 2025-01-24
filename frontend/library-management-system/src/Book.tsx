@@ -56,16 +56,18 @@ interface BookQueue {
 type BookProps = {
   book: Book;
   isAdmin: boolean;
+  editBook: any;
+  setEditedBook: any;
 };
-
 
 function getCookie(name: string) {
   let cookieValue = null;
-  if (document.cookie && document.cookie !== '') {
-    const cookies = document.cookie.split(';');
+
+  if (document.cookie && document.cookie !== "") {
+    const cookies = document.cookie.split(";");
     for (let i = 0; i < cookies.length; i++) {
       const cookie = cookies[i].trim();
-      if (cookie.startsWith(name + '=')) {
+      if (cookie.startsWith(name + "=")) {
         cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
         break;
       }
@@ -74,19 +76,23 @@ function getCookie(name: string) {
   return cookieValue;
 }
 
-
-const Book: React.FC<BookProps> = ({ book, isAdmin }) => {
-
+const Book: React.FC<BookProps> = ({
+  book,
+  isAdmin,
+  editBook,
+  setEditedBook,
+}) => {
   const [selected, setSelected] = useState<number | null>(null);
   const [bookQueue, setBookQueue] = useState<Array<BookQueue>>([]);
   const [loading, setLoading] = useState(false);
   const [reservationDate, setReservationDate] = useState<string | null>(null);
 
   useEffect(() => {
-
     const fetchBookQueue = async () => {
       try {
-        const response = await fetch(`http://localhost:8000/api/book_queue/${book.bookID}/`);
+        const response = await fetch(
+          `http://localhost:8000/api/book_queue/${book.bookID}/`
+        );
         setLoading(false);
 
         if (!response.ok) {
@@ -94,11 +100,9 @@ const Book: React.FC<BookProps> = ({ book, isAdmin }) => {
         }
         const data = await response.json();
         setBookQueue(data);
-      }
-      catch (error) {
 
-      }
-    }
+      } catch (error) {}
+    };
 
     setSelected(null);
     setLoading(true);
@@ -108,15 +112,14 @@ const Book: React.FC<BookProps> = ({ book, isAdmin }) => {
 
   const handleReserveBook = async () => {
     try {
-      const csrftoken = getCookie('csrftoken');
-      if (!csrftoken)
-        throw Error(`Error`);
+      const csrftoken = getCookie("csrftoken");
+      if (!csrftoken) throw Error(`Error`);
 
       const response = await fetch(`http://localhost:8000/api/reserve-book/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          'X-CSRFToken': csrftoken,
+          "X-CSRFToken": csrftoken,
         },
         credentials: "include",
 
@@ -239,6 +242,7 @@ const Book: React.FC<BookProps> = ({ book, isAdmin }) => {
         ) : (
           <Fragment>
 
+
             {bookQueue.length > 0 ? (
               <Fragment>
                 <TableContainer sx={{ mt: "50px" }} component={Paper}>
@@ -256,13 +260,19 @@ const Book: React.FC<BookProps> = ({ book, isAdmin }) => {
                       {bookQueue.map((row, index) => (
                         <TableRow
                           key={row.book_queue_id}
-                          sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
+
+                          sx={{
+                            "&:last-child td, &:last-child th": { border: 0 },
+                          }}
+
                         >
                           <TableCell>
                             <Checkbox
                               checked={selected === index}
                               onChange={(e) => {
-                                setSelected((e.target.checked) ? index : null);
+
+                                setSelected(e.target.checked ? index : null);
+
                               }}
                             />
                           </TableCell>
@@ -270,7 +280,11 @@ const Book: React.FC<BookProps> = ({ book, isAdmin }) => {
                             {row.first_name + " " + row.last_name}
                           </TableCell>
                           <TableCell align="right">{row.email}</TableCell>
-                          <TableCell align="right">{row.phone_number}</TableCell>
+
+                          <TableCell align="right">
+                            {row.phone_number}
+                          </TableCell>
+
                           <TableCell align="right">{row.queue_date}</TableCell>
                         </TableRow>
                       ))}
@@ -285,25 +299,24 @@ const Book: React.FC<BookProps> = ({ book, isAdmin }) => {
                   Borrow
                 </Button>
               </Fragment>
+
+            ) : loading ? (
+              <CircularProgress />
             ) : (
-              loading ? (
-                <CircularProgress />
-              ) : (
-                <Typography sx={{ mt: "50px" }}>No reservations</Typography>
-              )
+              <Typography sx={{ mt: "50px" }}>No reservations</Typography>
             )}
-
-
 
             <Button
               sx={{ mt: "20px" }}
-              onClick={() => window.open(`${window.location.origin}/librarian/book?book_id=${book.bookID}`)}
+              onClick={() => {
+                editBook(true);
+                setEditedBook(book.bookID);
+              }}
             >
               Edit
             </Button>
           </Fragment>
         )}
-
       </Box>
     </Container >
   );

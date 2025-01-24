@@ -33,6 +33,10 @@ from datetime import timedelta, date
 from .reservation_logic import verify_inventory
 import json
 import logging
+import urllib.parse
+from api.utils.media import get_cover_path
+from django.core.files.storage import default_storage
+import os
 
 
 logger = logging.getLogger(__name__)
@@ -72,13 +76,16 @@ class BookQueueView(ListAPIView):
     serializer_class = BookQueueSerializer
 
     def get_queryset(self):
-        book_id = self.kwargs['book_id']  # Get the book_id from the URL
+        book_id = self.kwargs["book_id"]  # Get the book_id from the URL
         return BookQueue.objects.filter(book_id=book_id)
 
     def get(self, request, *args, **kwargs):
         queryset = self.get_queryset()
         if not queryset.exists():
-            return Response({'message': 'No entries found for the given book ID.'}, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {"message": "No entries found for the given book ID."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
         return super().get(request, *args, **kwargs)
 
 
@@ -220,7 +227,7 @@ class ReserveBook(APIView):
         logger.info("ReserveBook POST request received")
 
         try:
-            book_id = request.data['book_id']
+            book_id = request.data["book_id"]
             user_id = request.user.user_id
             logger.info(f"Received data: book_id={book_id}, user_id={user_id}")
         except Exception as e:
@@ -533,6 +540,52 @@ def get_user_books(request):
         return JsonResponse(
             {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+
+
+@csrf_exempt
+def upload_cover(request):
+    """
+    Handle a POST request to upload cover photo.
+
+    Parameters:
+        request (HttpRequest): The HTTP request containing task ID and media file in the body.
+
+    Returns:
+        JsonResponse: JSON response with the saved media path (status 200) or an error message
+        (status 400, 404, 405, or 500).
+    """
+    if request.method != "POST":
+        return JsonResponse({"error": "Only POST requests are allowed"}, status=405)
+
+    try:
+        data = json.loads(request.POST.get("data"))
+        logger.info(f"Received cover upload request for book ID: {data.get('bookID')}")
+        book_id = int(data.get("bookID"))
+        if "cover" not in request.FILES:
+            return JsonResponse({"error": "No cover file provided"}, status=400)
+        cover = request.FILES["cover"]
+    except (ValueError, KeyError, json.JSONDecodeError) as e:
+        return JsonResponse({"error": str(e)}, status=400)
+
+    try:
+        book = Book.objects.get(bookID=book_id)
+    except Book.DoesNotExist:
+        return JsonResponse({"error": "Book not found"}, status=404)
+
+    response = {}
+    try:
+        with transaction.atomic():
+            logger.info(f"Saving cover for book ID: {book_id}")
+            saved_path = default_storage.save(get_cover_path(book_id), cover)
+            cover_file_name = os.path.basename(saved_path)
+            book.cover_path = cover_file_name
+            book.save()
+            response = {"coverPath": cover_file_name}
+    except Exception as e:
+        logger.error(f"Error saving cover for book ID {book_id}: {e}")
+        return JsonResponse({"error": str(e)}, status=500)
+
+    return JsonResponse(response, status=200)
 
 
 # KAFKA_BOOTSTRAP_SERVERS = os.environ.get('KAFKA_BOOTSTRAP_SERVERS', 'kafka:9092')

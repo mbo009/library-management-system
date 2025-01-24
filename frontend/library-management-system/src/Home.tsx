@@ -18,6 +18,7 @@ import { UserSummary } from "./types/UserSummary";
 import { UserProfile } from "./types/UserProfile";
 import AdminPanel from "./AdminPanel";
 import UserPanel from "./UserPanel";
+import Logo from "./utils/Logo";
 
 const Home = () => {
   const [query, setQuery] = useState<string>("");
@@ -195,7 +196,7 @@ const Home = () => {
       >
         <Paper
           elevation={20}
-          variant="outlined"
+          // variant="outlined"
           sx={{ padding: 2, marginBottom: 2, flexShrink: 0, maxHeight: "50%" }}
         >
           <Stack spacing={2} direction="row">
@@ -299,9 +300,22 @@ const Home = () => {
           <BookList books={books} booksLoading={booksLoading} />
         </Box>
       </Box>
-      <Box padding={3} sx={{ flexShrink: 0, width: "70%" }}>
+      <Box
+        padding={3}
+        sx={{ flexShrink: 0, width: "70%", position: "relative" }}
+      >
+        <Box
+          sx={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+          }}
+        >
+          <Logo padding={5} scalingConstant={0.5} />
+        </Box>
+
         <Paper
-          variant="outlined"
+          // variant="outlined"
           elevation={20}
           sx={{ height: "100%", display: "flex", flexDirection: "column" }}
         >
@@ -317,7 +331,7 @@ const Home = () => {
             />
           )}
         </Paper>
-      </Box>
+      </Box>{" "}
     </Stack>
   );
 };

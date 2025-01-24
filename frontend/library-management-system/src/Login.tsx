@@ -14,10 +14,12 @@ import {
   Typography,
   Stack,
   InputAdornment,
+  CircularProgress,
 } from "@mui/material";
 import PasswordValidation from "./PasswordValidation";
 import transition from "./utils/transition";
 import SHA256 from "crypto-js/sha256";
+import Logo from "./utils/Logo";
 
 interface PasswordInfo {
   passwordTooShort: boolean;
@@ -25,14 +27,6 @@ interface PasswordInfo {
   passwordWithoutDigit: boolean;
   passwordWithoutSpecial: boolean;
 }
-
-// type UserData = {
-//   email: string;
-//   phoneNumber: string;
-//   firstName: string;
-//   lastName: string;
-//   password: string;
-// };
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
@@ -50,6 +44,7 @@ const Login: React.FC = () => {
   const [confirmFormShift, setConfirmFormShift] = useState<number>(0);
   const [confirmPasswordMatch, setConfirmPasswordMatch] =
     useState<boolean>(true);
+  const [loading, setLoading] = useState<boolean>(false);
 
   const handleCheckbox = (event: ChangeEvent<HTMLInputElement>): void => {
     setChecked(event.target.checked);
@@ -162,6 +157,7 @@ const Login: React.FC = () => {
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    setLoading(true);
     let response: Response;
 
     try {
@@ -200,6 +196,8 @@ const Login: React.FC = () => {
           ? "Login failed, check your credentials and try again!"
           : "Registration failed, please try again!"
       );
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -214,6 +212,7 @@ const Login: React.FC = () => {
             textAlign: "center",
           }}
         >
+          <Logo />
           <Box sx={{ width: "100%", marginBottom: 3 }}>
             <Tabs
               value={tab}
@@ -261,8 +260,9 @@ const Login: React.FC = () => {
                 fullWidth
                 variant="contained"
                 sx={{ mt: 3, mb: 2 }}
+                disabled={loading}
               >
-                SIGN IN
+                {loading ? <CircularProgress size={24} /> : "SIGN IN"}
               </Button>
             </Box>
           ) : (
@@ -432,8 +432,13 @@ const Login: React.FC = () => {
                     fullWidth
                     variant="contained"
                     sx={{ mt: 3, mb: 2 }}
+                    disabled={loading}
                   >
-                    CREATE ACCOUNT
+                    {loading ? (
+                      <CircularProgress size={24} />
+                    ) : (
+                      "CREATE ACCOUNT"
+                    )}
                   </Button>
                 </Box>
               </Box>

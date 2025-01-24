@@ -34,9 +34,12 @@ class Book(models.Model):
     description = models.TextField(blank=True, null=True)
     isbn = models.CharField(max_length=13, unique=True)
     published_date = models.DateField(blank=True, null=True)
+    cover_path = models.CharField(max_length=255, blank=True, null=True, default="null")
     page_count = models.PositiveIntegerField(blank=True, null=True)
     genre = models.ForeignKey(Genre, on_delete=models.SET_NULL, null=True, blank=True)
-    language = models.ForeignKey(Language, on_delete=models.SET_NULL, null=True, blank=True)
+    language = models.ForeignKey(
+        Language, on_delete=models.SET_NULL, null=True, blank=True
+    )
     authors = models.ManyToManyField(Author, related_name="books")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -46,18 +49,26 @@ class Book(models.Model):
 
 
 class UserManager(BaseUserManager):
-    def create_user(self, email, phone_number, first_name, last_name, password, is_librarian=False):
+    def create_user(
+        self, email, phone_number, first_name, last_name, password, is_librarian=False
+    ):
         if not all([email, phone_number, first_name, last_name, password]):
             raise ValueError("Required fields are missing")
         user = self.model(
-            email=self.normalize_email(email), phone_number=phone_number, first_name=first_name, last_name=last_name, is_librarian=is_librarian
+            email=self.normalize_email(email),
+            phone_number=phone_number,
+            first_name=first_name,
+            last_name=last_name,
+            is_librarian=is_librarian,
         )
         user.set_password(password)
         user.save(using=self._db)
         return user
 
     def create_superuser(self, email, phone_number, first_name, last_name, password):
-        user = self.create_user(email, phone_number, first_name, last_name, password, is_librarian=True)
+        user = self.create_user(
+            email, phone_number, first_name, last_name, password, is_librarian=True
+        )
         user.is_admin = True
         user.save(using=self._db)
         return user
@@ -104,6 +115,7 @@ class User(AbstractBaseUser):
     def queued_books(self):
         return Book.objects.filter(bookqueue__user=self)
 
+
 class LibrarianKeys(models.Model):
     librarian_key = models.CharField(max_length=32, primary_key=True)
     used = models.BooleanField(default=False)
@@ -122,12 +134,18 @@ class BorrowedBook(models.Model):
     borrowed_date = models.DateField(default=date.today)
     expected_return_date = models.DateField()
     returned_date = models.DateField(blank=True, null=True)
-    status = models.CharField(max_length=50, choices=[
-        ('Reserved', 'Resevered'),
-        ('Picked up', 'Picked up'),
-        ('Returned', 'Returned'),
-        ('Cancelled', 'Cancelled'),
-    ], default='Reserved')
+
+    status = models.CharField(
+        max_length=50,
+        choices=[
+            ("Reserved", "Resevered"),
+            ("Picked up", "Picked up"),
+            ("Returned", "Returned"),
+            ("Cancelled", "Cancelled"),
+        ],
+        default="Reserved",
+    )
+
 
     def is_returned(self):
         return self.returned_date is not None
@@ -143,7 +161,6 @@ class BookQueue(models.Model):
     book = models.ForeignKey(Book, on_delete=models.CASCADE)
     queue_date = models.DateField(default=date.today)
     turn = models.IntegerField()
-
 
     def __str__(self):
         return f"{self.book.title} by {self.user.first_name} {self.user.last_name}"

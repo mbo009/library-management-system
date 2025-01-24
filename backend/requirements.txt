@@ -4,6 +4,7 @@ certifi==2024.8.30
 charset-normalizer==3.4.0
 click==8.1.7
 codecov==2.1.13
+confluent-kafka==2.8.0
 coverage==7.6.8
 Django==4.2.18
 django-apps==0.1.0
@@ -13,17 +14,19 @@ djangorestframework==3.15.2
 elastic-transport==8.15.1
 elasticsearch==8.17.0
 elasticsearch-dsl==8.17.0
+Faker==33.3.1
 flake8==7.1.1
 greenlet==3.1.1
 idna==3.10
 iniconfig==2.0.0
-confluent_kafka==2.8.0
 mccabe==0.7.0
 msgpack==1.1.0
 multimethod==1.12
 mypy-extensions==1.0.0
+olefile==0.47
 packaging==24.2
 pathspec==0.12.1
+pillow==11.1.0
 platformdirs==4.3.6
 pluggy==1.5.0
 psycopg2-binary==2.9.10
@@ -40,4 +43,3 @@ six==1.17.0
 sqlparse==0.5.2
 typing_extensions==4.12.2
 urllib3==2.2.3
-Faker==33.3.1
