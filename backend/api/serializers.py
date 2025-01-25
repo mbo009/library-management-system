@@ -1,6 +1,15 @@
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
-from .models import Book, Author, BookQueue, User, Language, Genre
+from .models import (
+    Book,
+    Author,
+    BookQueue,
+    User,
+    Language,
+    Genre,
+    LibrarianKeys,
+    InventoryManager,
+)
 from django.db.models import Max
 from django.db import transaction
 from django.core.files.storage import default_storage
@@ -13,6 +22,12 @@ from django.conf import settings
 logger = logging.getLogger(__name__)
 
 
+class LibrarianKeySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = LibrarianKeys
+        fields = "__all__"
+
+
 class AuthorSerializer(serializers.ModelSerializer):
     class Meta:
         model = Author
@@ -22,6 +37,12 @@ class AuthorSerializer(serializers.ModelSerializer):
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
+        fields = "__all__"
+
+
+class AuthorSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Author
         fields = "__all__"
 
 
@@ -47,6 +68,7 @@ class BookSerializer(serializers.ModelSerializer):
 class CreateUpdateBookSerializer(serializers.ModelSerializer):
     authors = serializers.CharField()
     cover = serializers.ImageField(required=False)
+    total_copies = serializers.IntegerField(required=False)
 
     class Meta:
         model = Book
@@ -83,8 +105,10 @@ class CreateUpdateBookSerializer(serializers.ModelSerializer):
         return book
 
     def update(self, instance, validated_data):
+        logger.info(f"Data: {validated_data}")
         authors_data = validated_data.pop("authors", None)
         cover = validated_data.pop("cover", None)
+        total_copies = validated_data.pop("total_copies", None)
 
         with transaction.atomic():
             for attr, value in validated_data.items():
@@ -92,6 +116,9 @@ class CreateUpdateBookSerializer(serializers.ModelSerializer):
             if authors_data is not None:
                 authors = Author.objects.filter(id__in=authors_data)
                 instance.authors.set(authors)
+            if total_copies is not None:
+                InventoryManager().update_total_copies(instance, total_copies)
+
             if cover:
                 if instance.cover_path:
                     cover_path = os.path.join(settings.MEDIA_ROOT, instance.cover_path)

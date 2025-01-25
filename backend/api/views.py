@@ -11,6 +11,7 @@ from api.serializers import (
     LanguageSerializer,
     GenreSerializer,
     UserSerializer,
+    LibrarianKeySerializer,
 )
 from api.serializers import CreateUpdateBookSerializer
 from .utils.kafka_producer import send_kafka_message
@@ -72,7 +73,7 @@ class BookQueueView(ListAPIView):
     serializer_class = BookQueueSerializer
 
     def get_queryset(self):
-        book_id = self.kwargs["book_id"]  # Get the book_id from the URL
+        book_id = self.kwargs["book_id"]
         return BookQueue.objects.filter(book_id=book_id)
 
     def get(self, request, *args, **kwargs):
@@ -98,6 +99,57 @@ class BookUpdateView(UpdateAPIView):
 class AuthorCreateView(CreateAPIView):
     queryset = Author.objects.all()
     serializer_class = AuthorSerializer
+
+
+class LibrarianKeyView(APIView):
+    queryset = LibrarianKeys.objects.all()
+    serializer_class = LibrarianKeySerializer
+
+    def post(self, request, *args, **kwargs):
+        logger.info("Received request to create librarian key: %s", request.data)
+
+        try:
+            user = User.objects.get(pk=int(request.data["librarian_id"]))
+        except User.DoesNotExist:
+            return Response(
+                {"error": "User not found."}, status=status.HTTP_404_NOT_FOUND
+            )
+
+        if not user.is_librarian:
+            return Response(
+                {"error": "User is not a librarian."}, status=status.HTTP_403_FORBIDDEN
+            )
+
+        serializer = LibrarianKeySerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def get(self, request, *args, **kwargs):
+        keys = LibrarianKeys.objects.all()
+        serializer = LibrarianKeySerializer(keys, many=True)
+        return Response(serializer.data)
+
+    def delete(self, request, *args, **kwargs):
+        try:
+            key = LibrarianKeys.objects.get(
+                librarian_id=request.data["librarian_id"],
+                librarian_key=request.data["librarian_key"],
+            )
+            if key.librarian_key != request.data["librarian_key"]:
+                return Response(
+                    {"error": "Invalid key provided."}, status=status.HTTP_403_FORBIDDEN
+                )
+            key.delete()
+            return Response(
+                {"message": "Key deleted successfully."}, status=status.HTTP_200_OK
+            )
+        except LibrarianKeys.DoesNotExist:
+            return Response(
+                {"error": "Key not found."}, status=status.HTTP_404_NOT_FOUND
+            )
 
 
 class AuthorUpdateView(UpdateAPIView):
@@ -431,10 +483,9 @@ def sign_up(request):
             if provided_librarian_key:
                 logger.info("Checking provided librarian key")
                 librarian_key = LibrarianKeys.objects.filter(
-                    librarianKey=provided_librarian_key, used=False
+                    librarian_key=provided_librarian_key
                 ).first()
                 if librarian_key:
-                    librarian_key.used = True
                     librarian_key.save()
                     is_librarian = True
                 else:

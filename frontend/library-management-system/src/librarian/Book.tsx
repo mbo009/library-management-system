@@ -19,10 +19,18 @@ import {
   CircularProgress,
   Snackbar,
   Alert,
+  IconButton,
+  Backdrop,
+  Paper,
+  InputAdornment,
 } from "@mui/material";
 import transition from "../utils/transition";
 import CoverFrame from "./CoverFrame";
 import AuthorDialog from "./AuthorDialog";
+import { Add } from "@mui/icons-material";
+import EditAuthor from "./librarian/Author";
+import EditLanguages from "./librarian/Languages";
+import EditGenres from "./Genres";
 
 interface Author {
   id: number;
@@ -33,7 +41,7 @@ interface Author {
 interface Book {
   bookID: number | null;
   authors: Array<Author>;
-  coverPhoto: string;
+  cover_url: string;
   title: string;
   description: string;
   isbn: string;
@@ -41,6 +49,7 @@ interface Book {
   page_count: number;
   genre: number;
   language: number;
+  total_copies: number;
 }
 
 interface Language {
@@ -62,9 +71,10 @@ function initBook(): Book {
     description: "",
     genre: 0,
     authors: [],
-    coverPhoto: "",
+    cover_url: "",
     published_date: null,
     page_count: 1,
+    total_copies: 1,
     language: 0,
   };
 }
@@ -89,6 +99,10 @@ const EditBook: React.FC<EditBookProps> = ({ create, bookID }) => {
   const [alertMessage, setAlertMessage] = useState<string>("");
 
   const [selectAuthor, setSelectAuthor] = useState(false);
+
+  const [openGenreBackdrop, setOpenGenreBackdrop] = useState(false);
+  const handleOpenGenreBackdrop = () => setOpenGenreBackdrop(true);
+  const handleCloseGenreBackdrop = () => setOpenGenreBackdrop(false);
 
   const handleMediaChanged = (
     event: React.ChangeEvent<HTMLInputElement>
@@ -188,10 +202,8 @@ const EditBook: React.FC<EditBookProps> = ({ create, bookID }) => {
   const handleSaveBook = async () => {
     setLoading(true);
     try {
-      // Create a FormData object to hold the book data and file
       const formData = new FormData();
 
-      // Append the book details to the FormData
       formData.append("title", book.title);
       formData.append("description", book.description);
       formData.append("isbn", book.isbn.replace(/[-\s]/g, ""));
@@ -199,26 +211,23 @@ const EditBook: React.FC<EditBookProps> = ({ create, bookID }) => {
       formData.append("page_count", book.page_count.toString());
       formData.append("genre", book.genre.toString());
       formData.append("language", book.language.toString());
-
-      // Append the authors (as a list of primary keys)
+      formData.append("total_copies", book.total_copies.toString());
+      console.log(formData);
       formData.append(
         "authors",
         JSON.stringify(book.authors.map((author) => author.id))
       );
 
-      // If a new cover photo is selected, append it to FormData
       if (selectedCoverPhoto) {
         formData.append("cover", selectedCoverPhoto);
-      } else if (book.coverPhoto) {
-        formData.append("cover", book.coverPhoto); // If no new cover, send the existing one
+      } else if (book.cover_url) {
+        formData.append("cover", book.cover_url);
       }
 
-      // Log the FormData to ensure all fields are present
       for (let [key, value] of formData.entries()) {
         console.log(key, value);
       }
 
-      // Determine API endpoint and method based on whether we are creating or updating
       let api, method;
       if (create) {
         api = "http://localhost:8000/api/create_book/";
@@ -228,10 +237,9 @@ const EditBook: React.FC<EditBookProps> = ({ create, bookID }) => {
         method = "PUT";
       }
 
-      // Send the data to the backend
       const response = await fetch(api, {
         method: method,
-        body: formData, // Send the FormData as the request body
+        body: formData,
       });
 
       if (!response.ok) {
@@ -352,10 +360,29 @@ const EditBook: React.FC<EditBookProps> = ({ create, bookID }) => {
                 <Select
                   labelId="genre-select-label"
                   value={book.genre}
+                  IconComponent={() => <></>}
                   label="Genre"
                   onChange={(e) =>
                     setBook({ ...book, genre: Number(e.target.value) })
                   }
+                  endAdornment={
+                    <InputAdornment position="end">
+                      <IconButton
+                        color="primary"
+                        onClick={handleOpenGenreBackdrop}
+                      >
+                        <Add />
+                      </IconButton>
+                    </InputAdornment>
+                  }
+                  MenuProps={{
+                    PaperProps: {
+                      style: {
+                        maxHeight: 48 * 4.5,
+                        overflowY: "auto",
+                      },
+                    },
+                  }}
                 >
                   <MenuItem key={0} value={0}>
                     ---
@@ -367,7 +394,6 @@ const EditBook: React.FC<EditBookProps> = ({ create, bookID }) => {
                   ))}
                 </Select>
               </FormControl>
-
               <TextField
                 label="Number of pages"
                 type="number"
@@ -380,28 +406,39 @@ const EditBook: React.FC<EditBookProps> = ({ create, bookID }) => {
                 }
               />
             </Stack>
-
-            <FormControl fullWidth>
-              <InputLabel id="language-select-label">Language</InputLabel>
-              <Select
-                labelId="language-select-label"
-                value={book.language}
-                label="Language"
-                onChange={(e) =>
-                  setBook({ ...book, language: Number(e.target.value) })
-                }
-              >
-                <MenuItem key={0} value={0}>
-                  ---
-                </MenuItem>
-                {languages.map((language, index) => (
-                  <MenuItem key={index + 1} value={language.languageID}>
-                    {language.name}
+            <Stack direction="row" sx={{ width: "100%" }} spacing={2}>
+              <FormControl fullWidth>
+                <InputLabel id="language-select-label">Language</InputLabel>
+                <Select
+                  labelId="language-select-label"
+                  value={book.language}
+                  label="Language"
+                  onChange={(e) =>
+                    setBook({ ...book, language: Number(e.target.value) })
+                  }
+                >
+                  <MenuItem key={0} value={0}>
+                    ---
                   </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-
+                  {languages.map((language, index) => (
+                    <MenuItem key={index + 1} value={language.languageID}>
+                      {language.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+              <TextField
+                label="Total copies"
+                type="number"
+                value={book.total_copies}
+                onChange={(e) =>
+                  setBook({
+                    ...book,
+                    total_copies: Math.max(Number(e.target.value), 1),
+                  })
+                }
+              />
+            </Stack>
             <List
               sx={{
                 width: "100%",
@@ -483,6 +520,23 @@ const EditBook: React.FC<EditBookProps> = ({ create, bookID }) => {
           {alertMessage}
         </Alert>
       </Snackbar>
+
+      <Backdrop
+        open={openGenreBackdrop}
+        onClick={handleCloseGenreBackdrop}
+        sx={{ color: "#fff", zIndex: 20 }}
+      >
+        <Paper elevation={20} sx={{ padding: 2, width: "30%", height: "60%" }}>
+          <Box
+            display="flex"
+            alignItems="center"
+            justifyContent="center"
+            sx={{ height: "100%", width: "100%" }}
+          >
+            <EditGenres genres={genres} setGenres={setGenres} />
+          </Box>
+        </Paper>
+      </Backdrop>
     </Container>
   );
 };

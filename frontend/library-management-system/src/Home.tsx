@@ -19,6 +19,7 @@ import { UserProfile } from "./types/UserProfile";
 import AdminPanel from "./AdminPanel";
 import UserPanel from "./UserPanel";
 import Logo from "./utils/Logo";
+import CoverFrame from "./librarian/CoverFrame";
 
 const Home = () => {
   const [query, setQuery] = useState<string>("");
@@ -182,7 +183,7 @@ const Home = () => {
   };
 
   return (
-    <Stack direction="row" sx={{ height: "100vh" }}>
+    <Stack direction="row" overflow="hidden" sx={{ height: "100vh" }}>
       <Box
         paddingLeft={3}
         paddingTop={3}
@@ -262,34 +263,48 @@ const Home = () => {
                     console.log(selectedItem);
                   }}
                 >
-                  <Stack direction="column" spacing={1} sx={{ width: "100%" }}>
-                    <Typography
-                      variant="h5"
-                      sx={{
-                        flexGrow: 1,
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                        maxWidth: "100%",
-                      }}
+                  <Stack direction="row" spacing={1}>
+                    {"cover_url" in item && (
+                      <CoverFrame
+                        selectedCoverPhoto={null}
+                        book={item}
+                        editable={false}
+                        size={{ width: 60, height: 90 }}
+                      />
+                    )}
+                    <Stack
+                      direction="column"
+                      spacing={1}
+                      sx={{ width: "100%" }}
                     >
-                      {"title" in item
-                        ? item.title
-                        : "first_name" in item && "last_name" in item
-                        ? `${item.first_name} ${item.last_name}`
-                        : "Unknown"}
-                    </Typography>
-                    <Typography
-                      variant="h6"
-                      sx={{
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                        maxWidth: "100%",
-                      }}
-                    >
-                      {getItemText(item)}
-                    </Typography>
+                      <Typography
+                        variant="h5"
+                        sx={{
+                          flexGrow: 1,
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                          maxWidth: "100%",
+                        }}
+                      >
+                        {"title" in item
+                          ? item.title
+                          : "first_name" in item && "last_name" in item
+                          ? `${item.first_name} ${item.last_name}`
+                          : "Unknown"}
+                      </Typography>
+                      <Typography
+                        variant="h6"
+                        sx={{
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                          maxWidth: "100%",
+                        }}
+                      >
+                        {getItemText(item)}
+                      </Typography>
+                    </Stack>
                   </Stack>
                 </Paper>
               ))
@@ -323,6 +338,7 @@ const Home = () => {
             <AdminPanel
               selectedItem={selectedItem}
               setSelectedItem={setSelectedItem}
+              librarian_id={user.user_id}
             />
           ) : (
             <UserPanel

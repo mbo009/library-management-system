@@ -17,6 +17,7 @@ import {
   CircularProgress,
 } from "@mui/material";
 import transition from "./utils/transition";
+import CoverFrame from "./librarian/CoverFrame";
 
 interface Author {
   id: number;
@@ -39,6 +40,7 @@ interface Book {
   updated_at: string;
   genre: number;
   language: number;
+  cover_url: string;
 }
 
 interface BookQueue {
@@ -143,6 +145,7 @@ const Book: React.FC<BookProps> = ({
         justifyContent="center"
         gap={2}
       >
+        <CoverFrame selectedCoverPhoto={null} book={book} editable={false} />
         <Typography variant="h2" sx={{ mb: "15px" }}>
           {book.title}
         </Typography>
