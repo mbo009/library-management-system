@@ -56,18 +56,16 @@ interface BookQueue {
 type BookProps = {
   book: Book;
   isAdmin: boolean;
-  editBook: any;
-  setEditedBook: any;
 };
+
 
 function getCookie(name: string) {
   let cookieValue = null;
-
-  if (document.cookie && document.cookie !== "") {
-    const cookies = document.cookie.split(";");
+  if (document.cookie && document.cookie !== '') {
+    const cookies = document.cookie.split(';');
     for (let i = 0; i < cookies.length; i++) {
       const cookie = cookies[i].trim();
-      if (cookie.startsWith(name + "=")) {
+      if (cookie.startsWith(name + '=')) {
         cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
         break;
       }
@@ -76,23 +74,20 @@ function getCookie(name: string) {
   return cookieValue;
 }
 
-const Book: React.FC<BookProps> = ({
-  book,
-  isAdmin,
-  editBook,
-  setEditedBook,
-}) => {
+
+const Book: React.FC<BookProps> = ({ book, isAdmin }) => {
+
   const [selected, setSelected] = useState<number | null>(null);
   const [bookQueue, setBookQueue] = useState<Array<BookQueue>>([]);
   const [loading, setLoading] = useState(false);
+  const [reservationStatus, setReservationStatus] = useState<string | null>(null);
   const [reservationDate, setReservationDate] = useState<string | null>(null);
 
   useEffect(() => {
+    const csrftoken = getCookie('csrftoken');
     const fetchBookQueue = async () => {
       try {
-        const response = await fetch(
-          `http://localhost:8000/api/book_queue/${book.bookID}/`
-        );
+        const response = await fetch(`http://localhost:8000/api/book_queue/${book.bookID}/`);
         setLoading(false);
 
         if (!response.ok) {
@@ -100,53 +95,89 @@ const Book: React.FC<BookProps> = ({
         }
         const data = await response.json();
         setBookQueue(data);
+      }
+      catch (error) {
 
-      } catch (error) {}
-    };
+      }
+    }
+    const fetchReservationStatus = async () => {
+      try {
+        const response = await fetch(`http://localhost:8000/api/reserve-book/${book.bookID}/`,
+          {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+              'X-CSRFToken': csrftoken,
+            },
+            credentials: "include",
+
+          });
+
+
+        if (!response.ok) {
+          throw Error(`Error ${response.status}`);
+        }
+        else {
+          const result = await response.json();
+          console.log(result);
+          setReservationStatus(result.status);
+          if (result.status === "Ready" || result.status === "Waiting") {
+            setReservationDate(result.available_date);
+          }
+        }
+      }
+      catch (error) {
+
+      }
+    }
+
 
     setSelected(null);
     setLoading(true);
     setBookQueue([]);
     fetchBookQueue();
+    fetchReservationStatus();
   }, [book.bookID]);
 
   const handleReserveBook = async () => {
     try {
-      const csrftoken = getCookie("csrftoken");
+      const csrftoken = getCookie('csrftoken');
       if (!csrftoken) throw Error(`Error`);
 
       const response = await fetch(`http://localhost:8000/api/reserve-book/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "X-CSRFToken": csrftoken,
+          'X-CSRFToken': csrftoken,
         },
         credentials: "include",
-
         body: JSON.stringify({ book_id: book.bookID }),
       });
-
 
       if (!response.ok) {
         throw Error(`Error ${response.status}`);
       } else {
         const result = await response.json();
-        if (result.status === "success")
-        {
+        console.log(result);
+        if (result.status === "Ready" || result.status === "Waiting") {
+          setReservationStatus(result.status);
           setReservationDate(result.available_date);
           alert(
-            "Book reserved successfully. Available date: " + result.available_date
+            `Book reserved successfully. Available date: ${result.available_date}`
           );
+        } else {
+          alert(`Book reservation failed: ${result.message}`);
         }
-        else {
-          
-        }
-
       }
     } catch (error) {
-      alert("Failed to reserve book: " + error.message);
+      if (error instanceof Error) {
+        alert("Failed to reserve book: " + error.message);
+      } else {
+        alert("Failed to reserve book: An unknown error occurred.");
+      }
     }
   };
+
 
   if (book == null) return <>Loading...</>;
 
@@ -224,24 +255,36 @@ const Book: React.FC<BookProps> = ({
 
         {!isAdmin ? (
           <>
-            <Button
-              sx={{ mt: "100px" }}
-              variant="contained"
-              onClick={() => handleReserveBook()}
-            >
-              Reserve
-            </Button>
-            {reservationDate && (
-              <Box mt={2}>
-                <Typography>
-                  <b>Reservation Date:</b> {reservationDate}
-                </Typography>
-              </Box>
+            {reservationStatus === "not_reserved" && (
+              <Button
+                sx={{ mt: "100px" }}
+                variant="contained"
+                onClick={handleReserveBook}
+              >
+                Reserve
+              </Button>
             )}
+            {(reservationStatus === "Waiting" || reservationStatus === "Ready") &&
+              reservationDate && (
+                <Box mt={2}>
+                  <Typography
+                    sx={{
+                      color: reservationStatus === "Ready" ? "green" : "orange",
+                    }}
+                  >
+                    <b>
+                      {reservationStatus === "Ready" ? "Pickup date:" : "Estimated pickup date:"}
+                    </b>{" "}
+                    {reservationDate}
+                  </Typography>
+                  {reservationStatus === "Ready" && (
+                    <Typography sx={{ color: "green" }}>Ready for pickup!</Typography>
+                  )}
+                </Box>
+              )}
           </>
         ) : (
           <Fragment>
-
 
             {bookQueue.length > 0 ? (
               <Fragment>
@@ -260,19 +303,13 @@ const Book: React.FC<BookProps> = ({
                       {bookQueue.map((row, index) => (
                         <TableRow
                           key={row.book_queue_id}
-
-                          sx={{
-                            "&:last-child td, &:last-child th": { border: 0 },
-                          }}
-
+                          sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
                         >
                           <TableCell>
                             <Checkbox
                               checked={selected === index}
                               onChange={(e) => {
-
-                                setSelected(e.target.checked ? index : null);
-
+                                setSelected((e.target.checked) ? index : null);
                               }}
                             />
                           </TableCell>
@@ -280,11 +317,7 @@ const Book: React.FC<BookProps> = ({
                             {row.first_name + " " + row.last_name}
                           </TableCell>
                           <TableCell align="right">{row.email}</TableCell>
-
-                          <TableCell align="right">
-                            {row.phone_number}
-                          </TableCell>
-
+                          <TableCell align="right">{row.phone_number}</TableCell>
                           <TableCell align="right">{row.queue_date}</TableCell>
                         </TableRow>
                       ))}
@@ -299,24 +332,25 @@ const Book: React.FC<BookProps> = ({
                   Borrow
                 </Button>
               </Fragment>
-
-            ) : loading ? (
-              <CircularProgress />
             ) : (
-              <Typography sx={{ mt: "50px" }}>No reservations</Typography>
+              loading ? (
+                <CircularProgress />
+              ) : (
+                <Typography sx={{ mt: "50px" }}>No reservations</Typography>
+              )
             )}
+
+
 
             <Button
               sx={{ mt: "20px" }}
-              onClick={() => {
-                editBook(true);
-                setEditedBook(book.bookID);
-              }}
+              onClick={() => window.open(`${window.location.origin}/librarian/book?book_id=${book.bookID}`)}
             >
               Edit
             </Button>
           </Fragment>
         )}
+
       </Box>
     </Container >
   );

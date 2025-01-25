@@ -30,7 +30,7 @@ from rest_framework.decorators import api_view
 from django.conf import settings
 from django.db.models import Q
 from datetime import timedelta, date
-from .reservation_logic import verify_inventory
+from .reservation_logic import verify_inventory, create_reservation
 import json
 import logging
 import urllib.parse
@@ -244,48 +244,57 @@ class ReserveBook(APIView):
                 )
             logger.info(f"Queue for book_id={book_id} fetched: {len(queued)} entries")
 
-            if len(queued) == 0:
-                logger.info(f"No queue found for book_id={book_id}, checking inventory")
-                if verify_inventory(book_id):
-                    logger.info(f"Inventory available for book_id={book_id}")
-                    event_data = {
-                        "book_id": book_id,
-                        "user_id": user_id,
-                    }
-                    send_kafka_message(
-                        topic=settings.KAFKA_CONFIG["topics"].get(
-                            "reservation_created"
-                        ),
-                        key=str(book_id) + ";" + str(user_id),
-                        value=event_data,
-                    )
-                    logger.info(f"Kafka message sent for book_id={book_id}, user_id={user_id}")
-                    queue_date = date.today()
-                else:
-                    logger.warning(f"No inventory available for book_id={book_id}")
-                    queue_date = BorrowedBook.objects.filter(book_id=book_id).order_by('expected_return_date').first().expected_return_date
-                turn = 0
-            else:
-                turn = queued.last().turn + 1
-                queue_date = queued.last().queue_date + timedelta(days=14)
-                logger.info(f"Queue updated for book_id={book_id}: turn={turn}, queue_date={queue_date}")
+            queue_date, turn, reservation_status = create_reservation(book_id, user_id, queued)
 
-            book_queue = BookQueue(
-                user=User.objects.get(user_id=user_id),
-                book=Book.objects.get(bookID=book_id),
-                queue_date=queue_date,
-                turn=turn,
-            )
-            book_queue.save()
-            logger.info(f"BookQueue entry created: {book_queue}")
 
-            return Response({"status": "succes", "available_date": queue_date, "turn": turn}, status=status.HTTP_201_CREATED)
+            return Response({"available_date": queue_date, "status": reservation_status,"turn": turn}, status=status.HTTP_201_CREATED)
         except Exception as e:
             logger.error(f"Reservation failed for book_id={book_id}, user_id={user_id}. Error: {e}")
             return Response(
                 {"error": "Reservation could not be completed.", "details": str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
+
+    def get(self, request, *args, **kwargs):
+        logger.info("ReserveBook GET request received")
+        try:
+            # Extracting book_id and user_id
+            book_id = kwargs.get("book_id")
+            user_id = request.user.user_id
+            logger.info(f"Extracted data: book_id={book_id}, user_id={user_id}")
+        except Exception as e:
+            logger.error(f"Failed to extract data from request: {e}")
+            return Response(f"Bad request: {e}", status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            # Querying the database for the reservation
+            logger.info(f"Fetching reservation for book_id={book_id} and user_id={user_id}")
+            reserved = BookQueue.objects.filter(book_id=book_id, user_id=user_id).first()
+
+            if reserved is None:
+                logger.info(f"No reservation found for book_id={book_id}, user_id={user_id}")
+                return Response(
+                    {"status": "not_reserved", "message": "No reservation found"},
+                    status=status.HTTP_200_OK,
+                )
+
+            logger.info(f"Reservation found for user_id={user_id}: {reserved}")
+            return Response(
+                {
+                    "status": reserved.status,
+                    "available_date": reserved.queue_date,
+                    "message": "User has a reservation"
+                },
+                status=status.HTTP_200_OK,
+            )
+        except Exception as e:
+            logger.error(f"Error fetching reservation data for book_id={book_id}, user_id={user_id}. Error: {e}")
+            return Response(
+                {"error": "Reservation data could not be fetched.", "details": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+
 
 def find_book(request):
     logger.info("Received request to find_book")
@@ -323,7 +332,7 @@ def find_book(request):
             {"message": "No search query provided."}, status=status.HTTP_400_BAD_REQUEST
         )
 
-
+@csrf_exempt
 def find_user(request):
     if request.method != "GET":
         return JsonResponse({"error": "Only GET requests are allowed"}, status=405)
@@ -335,10 +344,12 @@ def find_user(request):
         return JsonResponse(
             "error: User sending request not found in the system", status=404
         )
-    if not user.is_librarian:
-        return JsonResponse(
-            "error: User sending request is not a librarian", status=403
-        )
+    # if not user.is_librarian:
+    #     return JsonResponse(
+    #         "error: User sending request is not a librarian", status=403
+    #     )
+
+    # TODO uncomment
 
     try:
         query = request.GET.get("query")
@@ -354,7 +365,9 @@ def find_user(request):
             fuzziness="AUTO",
         )
         users = UserDocument.search().query(m_query).to_queryset()
+
         seralizer = UserSerializer(users, many=True)
+        logger.info(seralizer.data)
         return JsonResponse(seralizer.data, safe=False)
     except Exception as e:
         logger.exception("Unexpected error occurred during get user")

@@ -53,16 +53,16 @@ services:
     volumes:
       - ./backend:/app
 
-  frontend:
-    build:
-      context: ./frontend/library-management-system
-      dockerfile: Dockerfile
-    ports:
-      - "3000:80"
-    depends_on:
-      - backend
-    volumes:
-      - ./frontend:/app
+  # frontend:
+  #   build:
+  #     context: ./frontend/library-management-system
+  #     dockerfile: Dockerfile
+  #   ports:
+  #     - "3000:80"
+  #   depends_on:
+  #     - backend
+  #   volumes:
+  #     - ./frontend:/app
 
   pgadmin:
     image: dpage/pgadmin4

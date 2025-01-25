@@ -23,6 +23,7 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = "__all__"
+        extra_fields = ["queued_books"]
 
 
 class BookSerializer(serializers.ModelSerializer):

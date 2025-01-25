@@ -15,6 +15,7 @@ type UserDetailsProps = {
 };
 
 const UserDetails: React.FC<UserDetailsProps> = ({ userData }) => {
+  console.log(userData);
   return (
     <Box sx={{ padding: 2 }}>
       <Divider>User Details</Divider>
@@ -41,6 +42,21 @@ const UserDetails: React.FC<UserDetailsProps> = ({ userData }) => {
               <Stack direction="row" spacing={2}>
                 <Typography>{book.title}</Typography>
                 <Button>Return book</Button>
+              </Stack>
+            </ListItem>
+          </List>
+        ))
+      )}
+      <Divider>Reserved Books</Divider>
+      {userData.queued_books.length === 0 ? (
+        <Typography>User has no reserved books.</Typography>
+      ) : (
+        userData.queued_books.map((book) => (
+          <List key={book.bookID} sx={{ padding: 1 }}>
+            <ListItem>
+              <Stack direction="row" spacing={2}>
+                <Typography>{book.title}</Typography>
+                <Button>Issue the book</Button>
               </Stack>
             </ListItem>
           </List>

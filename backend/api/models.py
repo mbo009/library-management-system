@@ -161,6 +161,14 @@ class BookQueue(models.Model):
     book = models.ForeignKey(Book, on_delete=models.CASCADE)
     queue_date = models.DateField(default=date.today)
     turn = models.IntegerField()
+    status = models.CharField(
+        max_length=50,
+        choices=[
+            ("Ready", "Ready"),
+            ("Waiting", "Waiting"),
+        ],
+        default="Waiting",
+    )
 
     def __str__(self):
         return f"{self.book.title} by {self.user.first_name} {self.user.last_name}"

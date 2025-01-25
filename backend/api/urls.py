@@ -53,4 +53,5 @@ urlpatterns = [
     ),
     path("book_queue/<int:book_id>/", views.BookQueueView.as_view(), name="book-queue"),
     path("upload_cover/", views.upload_cover, name="upload_cover"),
+    path('reserve-book/<int:book_id>/', views.ReserveBook.as_view(), name='check-reservation'),
 ]
