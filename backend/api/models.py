@@ -145,7 +145,9 @@ class BorrowedBook(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     book = models.ForeignKey(Book, on_delete=models.CASCADE)
     borrowed_date = models.DateField(default=date.today)
+    expected_return_date = models.DateField()
     returned_date = models.DateField(blank=True, null=True)
+
     status = models.CharField(
         max_length=50,
         choices=[
@@ -156,6 +158,7 @@ class BorrowedBook(models.Model):
         ],
         default="Reserved",
     )
+
 
     def is_returned(self):
         return self.returned_date is not None

@@ -17,7 +17,7 @@ def verify_inventory(book_id):
 
 def process_inventory_update(event):
     try:
-        book_id = event.get("book")
+        book_id = event.get("book_id")
         with transaction.atomic():
             book = Book.objects.get(pk=book_id)
             inventory = Inventory.objects.get(book=book)
@@ -42,7 +42,7 @@ def process_reservations(event):
         serializer = CreateBookQueueSerializer(data=event)
         if serializer.is_valid():
             book_queue = serializer.save()
-            
+
     except Exception as e:
         logger.info(f"Error processing reservations: {e}")
 
@@ -57,6 +57,12 @@ def process_author_creation(event):
         print(f"Error processing inventory update: {e}")
 
 
+def verify_inventory(book_id):
+    book = Book.objects.get(pk=book_id)
+    inventory = Inventory.objects.get(book=book)
+    return inventory.available_copies > 0
+
+
 def start_author_consumer():
     consumer = KafkaConsumer("author_created", "author_group", settings.KAFKA_CONFIG["bootstrap.servers"])
     consumer.start_in_thread(process_author_creation)
@@ -64,4 +70,4 @@ def start_author_consumer():
 def start_reservation_consumer():
     consumer = KafkaConsumer("reservation_created", "reservation_group", settings.KAFKA_CONFIG["bootstrap.servers"])
     #consumer.start_in_thread(process_inventory_update)
-    consumer.start_in_thread(process_reservations)
+    consumer.start_in_thread(process_inventory_update)
