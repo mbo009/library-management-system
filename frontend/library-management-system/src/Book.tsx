@@ -102,7 +102,6 @@ const Book: React.FC<BookProps> = ({
         }
         const data = await response.json();
         setBookQueue(data);
-
       } catch (error) {}
     };
 
@@ -128,25 +127,25 @@ const Book: React.FC<BookProps> = ({
         body: JSON.stringify({ book_id: book.bookID }),
       });
 
-
       if (!response.ok) {
         throw Error(`Error ${response.status}`);
       } else {
         const result = await response.json();
-        if (result.status === "success")
-        {
+        if (result.status === "success") {
           setReservationDate(result.available_date);
           alert(
-            "Book reserved successfully. Available date: " + result.available_date
+            "Book reserved successfully. Available date: " +
+              result.available_date
           );
+        } else {
         }
-        else {
-          
-        }
-
       }
     } catch (error) {
-      alert("Failed to reserve book: " + error.message);
+      if (error instanceof Error) {
+        alert("Failed to reserve book: " + error.message);
+      } else {
+        alert("An unknown error occurred");
+      }
     }
   };
 
@@ -244,8 +243,6 @@ const Book: React.FC<BookProps> = ({
           </>
         ) : (
           <Fragment>
-
-
             {bookQueue.length > 0 ? (
               <Fragment>
                 <TableContainer sx={{ mt: "50px" }} component={Paper}>
@@ -263,19 +260,15 @@ const Book: React.FC<BookProps> = ({
                       {bookQueue.map((row, index) => (
                         <TableRow
                           key={row.book_queue_id}
-
                           sx={{
                             "&:last-child td, &:last-child th": { border: 0 },
                           }}
-
                         >
                           <TableCell>
                             <Checkbox
                               checked={selected === index}
                               onChange={(e) => {
-
                                 setSelected(e.target.checked ? index : null);
-
                               }}
                             />
                           </TableCell>
@@ -302,7 +295,6 @@ const Book: React.FC<BookProps> = ({
                   Borrow
                 </Button>
               </Fragment>
-
             ) : loading ? (
               <CircularProgress />
             ) : (
@@ -321,7 +313,7 @@ const Book: React.FC<BookProps> = ({
           </Fragment>
         )}
       </Box>
-    </Container >
+    </Container>
   );
 };
 

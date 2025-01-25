@@ -16,4 +16,5 @@ export type Book = {
   updated_at: string;
   genre: number;
   language: number;
+  cover_url: string;
 };

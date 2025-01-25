@@ -28,8 +28,7 @@ import transition from "../utils/transition";
 import CoverFrame from "./CoverFrame";
 import AuthorDialog from "./AuthorDialog";
 import { Add } from "@mui/icons-material";
-import EditAuthor from "./librarian/Author";
-import EditLanguages from "./librarian/Languages";
+import EditLanguages from "./Languages";
 import EditGenres from "./Genres";
 
 interface Author {
@@ -86,23 +85,26 @@ type EditBookProps = {
 
 const EditBook: React.FC<EditBookProps> = ({ create, bookID }) => {
   const [book, setBook] = useState<Book>(initBook());
+  const [open, setOpen] = useState<boolean>(false);
   const [languages, setLanguages] = useState<Array<Language>>([]);
   const [genres, setGenres] = useState<Array<Genre>>([]);
   const [selectedCoverPhoto, setSelectedCoverPhoto] = useState<File | null>(
     null
   );
   const [loading, setLoading] = useState<boolean>(false);
-  const [open, setOpen] = useState<boolean>(false);
   const [alertSeverity, setAlertSeverity] = useState<"success" | "error">(
     "success"
   );
-  const [alertMessage, setAlertMessage] = useState<string>("");
 
   const [selectAuthor, setSelectAuthor] = useState(false);
 
   const [openGenreBackdrop, setOpenGenreBackdrop] = useState(false);
   const handleOpenGenreBackdrop = () => setOpenGenreBackdrop(true);
   const handleCloseGenreBackdrop = () => setOpenGenreBackdrop(false);
+  const [openLanguageBackdrop, setOpenLanguageBackdrop] = useState(false);
+  const handleOpenLanguageBackdrop = () => setOpenLanguageBackdrop(true);
+  const handleCloseLanguageBackdrop = () => setOpenLanguageBackdrop(false);
+  const [alertMessage, setAlertMessage] = useState<string>("");
 
   const handleMediaChanged = (
     event: React.ChangeEvent<HTMLInputElement>
@@ -114,6 +116,13 @@ const EditBook: React.FC<EditBookProps> = ({ create, bookID }) => {
   };
 
   useEffect(() => {
+    if (alertMessage && !loading) {
+      setOpen(true);
+    }
+  }, [alertMessage]);
+
+  useEffect(() => {
+    setLoading(true);
     const fetchBook = async () => {
       try {
         const response = await fetch(
@@ -171,9 +180,20 @@ const EditBook: React.FC<EditBookProps> = ({ create, bookID }) => {
 
     fetchLanguages();
     fetchGenres();
+    setLoading(false);
   }, []);
 
-  if (!create && book.bookID === null) return <>Loading...</>;
+  if (!create && book.bookID === null)
+    return (
+      <Box
+        sx={{ width: "100%", height: "100%" }}
+        display="flex"
+        justifyContent="center"
+        alignItems="center"
+      >
+        <CircularProgress color="secondary" />
+      </Box>
+    );
 
   console.log(book);
 
@@ -413,6 +433,17 @@ const EditBook: React.FC<EditBookProps> = ({ create, bookID }) => {
                   labelId="language-select-label"
                   value={book.language}
                   label="Language"
+                  IconComponent={() => <></>}
+                  endAdornment={
+                    <InputAdornment position="end">
+                      <IconButton
+                        color="primary"
+                        onClick={handleOpenLanguageBackdrop}
+                      >
+                        <Add />
+                      </IconButton>
+                    </InputAdornment>
+                  }
                   onChange={(e) =>
                     setBook({ ...book, language: Number(e.target.value) })
                   }
@@ -463,7 +494,9 @@ const EditBook: React.FC<EditBookProps> = ({ create, bookID }) => {
                   <Button
                     size="small"
                     variant="contained"
-                    onClick={() => setSelectAuthor(true)}
+                    onClick={() => {
+                      setSelectAuthor(true);
+                    }}
                   >
                     Add
                   </Button>
@@ -495,6 +528,7 @@ const EditBook: React.FC<EditBookProps> = ({ create, bookID }) => {
             <AuthorDialog
               open={selectAuthor}
               onClose={handleCloseAuthorDialog}
+              setAlertMessage={setAlertMessage}
             />
           </Box>
           <Stack direction="column" spacing={2}>
@@ -533,7 +567,32 @@ const EditBook: React.FC<EditBookProps> = ({ create, bookID }) => {
             justifyContent="center"
             sx={{ height: "100%", width: "100%" }}
           >
-            <EditGenres genres={genres} setGenres={setGenres} />
+            <EditGenres
+              genres={genres}
+              setGenres={setGenres}
+              setAlertMessage={setAlertMessage}
+            />
+          </Box>
+        </Paper>
+      </Backdrop>
+
+      <Backdrop
+        open={openLanguageBackdrop}
+        onClick={handleCloseLanguageBackdrop}
+        sx={{ color: "#fff", zIndex: 20 }}
+      >
+        <Paper elevation={20} sx={{ padding: 2, width: "30%", height: "60%" }}>
+          <Box
+            display="flex"
+            alignItems="center"
+            justifyContent="center"
+            sx={{ height: "100%", width: "100%" }}
+          >
+            <EditLanguages
+              languages={languages}
+              setLanguages={setLanguages}
+              setAlertMessage={setAlertMessage}
+            />
           </Box>
         </Paper>
       </Backdrop>

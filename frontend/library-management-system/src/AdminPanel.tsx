@@ -58,11 +58,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
     );
   }
 
-  /*
-  if (isUserProfileType(selectedItem)) {
-    return <UserDetails userData={selectedItem} />;
-  }*/
-
   return (
     <Box
       p={3}

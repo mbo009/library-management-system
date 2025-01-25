@@ -159,7 +159,6 @@ class BorrowedBook(models.Model):
         default="Reserved",
     )
 
-
     def is_returned(self):
         return self.returned_date is not None
 
@@ -204,7 +203,7 @@ class InventoryManager(models.Manager):
 
 
 class Inventory(models.Model):
-    id = models.AutoField(primary_key=True, default=0)
+    id = models.AutoField(primary_key=True)
     book = models.ForeignKey(Book, on_delete=models.CASCADE)
     total_copies = models.IntegerField(default=0)
     available_copies = models.IntegerField(default=0)

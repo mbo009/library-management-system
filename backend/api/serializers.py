@@ -89,9 +89,12 @@ class CreateUpdateBookSerializer(serializers.ModelSerializer):
         logger.info(f"Data: {validated_data}")
         authors_data = validated_data.pop("authors")
         cover = validated_data.pop("cover", None)
+        total_copies = validated_data.pop("total_copies", None)
 
         with transaction.atomic():
             book = Book.objects.create(**validated_data)
+            if total_copies:
+                InventoryManager().create_inventory(book, total_copies)
             logger.info(f"authors: {authors_data}")
             authors = Author.objects.filter(id__in=authors_data)
             book.authors.set(authors)

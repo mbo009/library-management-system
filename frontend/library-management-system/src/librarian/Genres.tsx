@@ -9,6 +9,10 @@ import {
   ListItem,
   ListItemButton,
   CircularProgress,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from "@mui/material";
 import transition from "../utils/transition";
 
@@ -19,12 +23,25 @@ interface Genre {
 
 type EditGenresProps = {
   genres: Array<Genre>;
-  setGenres: (genres: Array<Genre>) => void;
+  setGenres: any;
+  setAlertMessage: (message: string) => void;
 };
 
-const EditGenres: React.FC<EditGenresProps> = ({ genres, setGenres }) => {
+const EditGenres: React.FC<EditGenresProps> = ({
+  genres,
+  setGenres,
+  setAlertMessage,
+}) => {
   const [selected, setSelected] = useState<Genre>({ genreID: null, name: "" });
   const [loading, setLoading] = useState<boolean>(false);
+
+  const [dialogOpen, setDialogOpen] = useState(false);
+
+  const handleDialogClose = () => setDialogOpen(false);
+  const handleConfirmDelete = () => {
+    handleDialogClose();
+    handleDelete();
+  };
 
   const deselect = () => {
     setSelected({ genreID: null, name: "" });
@@ -108,8 +125,9 @@ const EditGenres: React.FC<EditGenresProps> = ({ genres, setGenres }) => {
       const newGenre = await response.json();
       deselect();
       setGenres([...genres, newGenre]);
+      setAlertMessage(`Genre ${selected.name} added successfully`);
     } catch (error) {
-      alert("Failed to add genre " + error);
+      setAlertMessage("Failed to add genre " + error);
     } finally {
       setLoading(false);
     }
@@ -134,10 +152,11 @@ const EditGenres: React.FC<EditGenresProps> = ({ genres, setGenres }) => {
       const newGenres = genres.filter(
         (genre) => genre.genreID !== selected.genreID
       );
+      setAlertMessage(`Genre ${selected.name} deleted successfully`);
       deselect();
       setGenres([...newGenres]);
     } catch (error) {
-      alert("Failed to delete genre " + error);
+      setAlertMessage(`Failed to delete genre ${selected.name} ` + error);
     } finally {
       setLoading(false);
     }
@@ -227,11 +246,24 @@ const EditGenres: React.FC<EditGenresProps> = ({ genres, setGenres }) => {
             </Button>
             <Button
               variant="contained"
-              onClick={handleDelete}
+              onClick={() => setDialogOpen(true)}
               sx={{ m: "10px " }}
             >
               Delete
             </Button>
+
+            <Dialog open={dialogOpen} onClose={handleDialogClose}>
+              <DialogTitle>
+                ARE YOU SURE YOU WANT TO DELETE THIS GENRE?
+              </DialogTitle>
+              <DialogContent>This action is irreversible</DialogContent>
+              <DialogActions>
+                <Button onClick={handleConfirmDelete}>YES</Button>
+                <Button onClick={handleDialogClose} color="error" autoFocus>
+                  NO
+                </Button>
+              </DialogActions>
+            </Dialog>
           </Stack>
         )}
       </Box>
