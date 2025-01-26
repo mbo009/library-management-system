@@ -24,11 +24,11 @@ const Home = () => {
   const [query, setQuery] = useState<string>("");
   const [results, setResults] = useState<Array<Book | UserProfile>>([]);
   const [searchLoading, setSearchLoading] = useState<boolean>(false);
-  const [booksLoading, setBooksLoading] = useState<boolean>(false);
+  const [booksLoading, setBooksLoading] = useState<boolean>(true);
   const [books, setBooks] = useState<Books>({
-    borrowed: [],
-    returned: [],
-    queued: [],
+    currently_borrowed_books: [],
+    previously_borrowed_books: [],
+    queued_books: [],
   });
 
   const [selectedItem, setSelectedItem] = useState<Book | UserProfile | null>(
@@ -180,7 +180,6 @@ const Home = () => {
       return "Unknown";
     }
   };
-
   return (
     <Stack direction="row" sx={{ height: "100vh" }}>
       <Box
@@ -276,8 +275,8 @@ const Home = () => {
                       {"title" in item
                         ? item.title
                         : "first_name" in item && "last_name" in item
-                        ? `${item.first_name} ${item.last_name}`
-                        : "Unknown"}
+                          ? `${item.first_name} ${item.last_name}`
+                          : "Unknown"}
                     </Typography>
                     <Typography
                       variant="h6"
@@ -296,9 +295,22 @@ const Home = () => {
             )}
           </Box>
         </Paper>
-        <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
-          <BookList books={books} booksLoading={booksLoading} />
-        </Box>
+        {booksLoading ? (
+          <Box
+            sx={{
+              flexGrow: 1,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <CircularProgress />
+          </Box>
+        ) : (
+          <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
+            <BookList books={books} booksLoading={booksLoading} />
+          </Box>
+        )}
       </Box>
       <Box
         padding={3}
@@ -332,7 +344,7 @@ const Home = () => {
           )}
         </Paper>
       </Box>{" "}
-    </Stack>
+    </Stack >
   );
 };
 

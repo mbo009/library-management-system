@@ -12,7 +12,7 @@ from api.serializers import (
     GenreSerializer,
     UserSerializer,
 )
-from api.serializers import CreateUpdateBookSerializer
+from api.serializers import CreateUpdateBookSerializer, BorrowedBookSerializer
 from .utils.kafka_producer import send_kafka_message
 from django.db import transaction
 from django.contrib.auth.hashers import make_password
@@ -30,7 +30,7 @@ from rest_framework.decorators import api_view
 from django.conf import settings
 from django.db.models import Q
 from datetime import timedelta, date
-from .reservation_logic import verify_inventory, create_reservation
+from .reservation_logic import verify_inventory, create_reservation, calculate_penalty
 import json
 import logging
 import urllib.parse
@@ -189,39 +189,6 @@ class CreateAuthorView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-"""
-class ReserveBook(APIView):
-    def post(self, request, *args, **kwargs):
-        serializer = BookQueueSerializer(data=request.data)
-        if serializer.is_valid():
-            try:
-                with transaction.atomic():
-                    book_queue = serializer.save()
-                    event_data = {
-                        "id": book_queue.book_queue_id,
-                        "user": book_queue.user.user_id,
-                        "book": book_queue.book.bookID,
-                        "queue_date": str(book_queue.queue_date),
-                        "turn": book_queue.turn,
-                    }
-                    if int(book_queue.turn) == 0:
-                        send_kafka_message(
-                            topic=settings.KAFKA_CONFIG["topics"].get(
-                                "reservation_created"
-                            ),
-                            key=str(book_queue.book_queue_id),
-                            value=event_data,
-                        )
-                return Response(serializer.data, status=status.HTTP_201_CREATED)
-            except Exception as e:
-                return Response(
-                    {"error": "Reservation could not be completed.", "details": str(e)},
-                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                )
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-"""
-
-
 class ReserveBook(APIView):
     def post(self, request, *args, **kwargs):
         logger.info("ReserveBook POST request received")
@@ -258,7 +225,6 @@ class ReserveBook(APIView):
     def get(self, request, *args, **kwargs):
         logger.info("ReserveBook GET request received")
         try:
-            # Extracting book_id and user_id
             book_id = kwargs.get("book_id")
             user_id = request.user.user_id
             logger.info(f"Extracted data: book_id={book_id}, user_id={user_id}")
@@ -267,7 +233,6 @@ class ReserveBook(APIView):
             return Response(f"Bad request: {e}", status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            # Querying the database for the reservation
             logger.info(f"Fetching reservation for book_id={book_id} and user_id={user_id}")
             reserved = BookQueue.objects.filter(book_id=book_id, user_id=user_id).first()
 
@@ -294,6 +259,118 @@ class ReserveBook(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
+@method_decorator(csrf_exempt, name='dispatch')
+class BorrowBook(APIView):
+    @csrf_exempt
+    def post(self, request, *args, **kwargs):
+        logger.info(f"Request user: {request.user}")
+
+        logger.info("BorrowBook POST request received")
+        logger.info(request.data)
+
+        try:
+            book_id = request.data["book_id"]
+            user_id = request.data["user_id"]
+            logger.info(f"Received data: book_id={book_id}, user_id={user_id}")
+        except Exception as e:
+            logger.error(f"Bad request: {e}")
+            return Response(f"Bad request: {e}", status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            borrowed = BorrowedBook.objects.filter(book_id=book_id, user_id=user_id).first()
+            if borrowed:
+                logger.info(f"User {user_id} has already borrowed book_id={book_id}")
+                return Response(
+                    {"status": "borrowed", "message": "User has already borrowed the book"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            logger.info(f"User {user_id} has not borrowed book_id={book_id} yet")
+            book = Book.objects.get(bookID=book_id)
+            borrowed = BorrowedBook(
+                user=User.objects.get(user_id=user_id),
+                book=book,
+                borrowed_date=date.today(),
+                expected_return_date=date.today() + timedelta(days=14),
+                status = "Picked up"
+            )
+            borrowed.save()
+            BookQueue.objects.filter(book_id=book_id, user_id=user_id).delete()
+            logger.info(f"Book borrowed successfully: {borrowed}")
+
+            return Response(
+                {"status": "borrowed", "message": "Book borrowed successfully"},
+                status=status.HTTP_201_CREATED,
+            )
+        except Exception as e:
+            logger.error(f"Borrowing failed for book_id={book_id}, user_id={user_id}. Error: {e}")
+            return Response(
+                {"error": "Borrowing could not be completed.", "details": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+
+class ReturnBook(APIView):
+    def post(self, request):
+        logger.info("ReturnBook POST request received")
+
+        try:
+            book_id = request.data["book_id"]
+            user_id = request.data["user_id"]
+            logger.info(f"Received data: book_id={book_id}, user_id={user_id}")
+        except Exception as e:
+            logger.error(f"Bad request: {e}")
+            return Response(f"Bad request: {e}", status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            borrowed = BorrowedBook.objects.filter(book_id=book_id, user_id=user_id).first()
+            if not borrowed:
+                logger.info(f"User {user_id} has not borrowed book_id={book_id}")
+                return Response(
+                    {"status": "not_borrowed", "message": "User has not borrowed the book"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            logger.info(f"User {user_id} has borrowed book_id={book_id}")
+            borrowed.returned_date = date.today()
+            borrowed.status = "Returned"
+            borrowed.save()
+            logger.info(f"Book returned successfully: {borrowed}")
+            event_data = {
+                "book_id": book_id,
+                "user_id": user_id,
+            }
+            send_kafka_message(
+                topic=settings.KAFKA_CONFIG["topics"].get(
+                    "borrowing_returned"
+                ),
+                key=str(book_id) + ";" + str(user_id),
+                value=event_data,
+            )
+            penalty = calculate_penalty(borrowed)
+            return Response(
+                {"status": "returned", "message": "Book returned successfully", "penalty": penalty},
+                status=status.HTTP_201_CREATED,
+            )
+        except Exception as e:
+            logger.error(f"Returning failed for book_id={book_id}, user_id={user_id}. Error: {e}")
+            return Response(
+                {"error": "Returning could not be completed.", "details": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+    def get(self, request, *args, **kwargs):
+        logger.info("BorrowBook POST request received")
+        try:
+            user_id = request.user.user_id
+            logger.info(f"Received data: user_id={user_id}")
+        except Exception as e:
+            logger.error(f"Bad request: {e}")
+            return Response(f"Bad request: {e}", status=status.HTTP_400_BAD_REQUEST)
+
+        borrowed_books = BorrowedBook.objects.filter(user_id=user_id, status="Returned")
+        serializer = BorrowedBookSerializer(borrowed_books, many=True)
+        return Response(serializer.data)
 
 
 def find_book(request):
@@ -332,7 +409,6 @@ def find_book(request):
             {"message": "No search query provided."}, status=status.HTTP_400_BAD_REQUEST
         )
 
-@csrf_exempt
 def find_user(request):
     if request.method != "GET":
         return JsonResponse({"error": "Only GET requests are allowed"}, status=405)
@@ -344,12 +420,11 @@ def find_user(request):
         return JsonResponse(
             "error: User sending request not found in the system", status=404
         )
-    # if not user.is_librarian:
-    #     return JsonResponse(
-    #         "error: User sending request is not a librarian", status=403
-    #     )
+    if not user.is_librarian:
+        return JsonResponse(
+            "error: User sending request is not a librarian", status=403
+        )
 
-    # TODO uncomment
 
     try:
         query = request.GET.get("query")
@@ -367,6 +442,7 @@ def find_user(request):
         users = UserDocument.search().query(m_query).to_queryset()
 
         seralizer = UserSerializer(users, many=True)
+        logger.info("halo")
         logger.info(seralizer.data)
         return JsonResponse(seralizer.data, safe=False)
     except Exception as e:

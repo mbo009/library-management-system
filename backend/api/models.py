@@ -101,14 +101,24 @@ class User(AbstractBaseUser):
 
     @property
     def currently_borrowed_books(self):
+        """
+        Returns books that the user has currently borrowed (not returned or cancelled).
+        """
         return Book.objects.filter(
-            borrowedbook__user=self, borrowedbook__returned_date__isnull=True
+            borrowedbook__user=self,
+            borrowedbook__returned_date__isnull=True,
+            borrowedbook__status__in=["Picked up", "Reserved"]
         )
 
     @property
     def previously_borrowed_books(self):
+        """
+        Returns books that the user has previously borrowed (returned or cancelled).
+        """
         return Book.objects.filter(
-            borrowedbook__user=self, borrowedbook__returned_date__isnull=False
+            borrowedbook__user=self,
+            borrowedbook__returned_date__isnull=False,
+            borrowedbook__status__in=["Returned"]
         )
 
     @property
@@ -175,7 +185,7 @@ class BookQueue(models.Model):
 
 
 class Inventory(models.Model):
-    inventoryID = models.AutoField(primary_key=True, db_column="inventoryid")
+    id = models.AutoField(primary_key=True, db_column="id")
     book = models.ForeignKey(Book, on_delete=models.CASCADE)
     total_copies = models.IntegerField(default=0)
     available_copies = models.IntegerField(default=0)

@@ -17,6 +17,7 @@ services:
       - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092
       - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092
       - ALLOW_PLAINTEXT_LISTENER=yes
+      - KAFKA_AUTO_CREATE_TOPICS_ENABLE=true
     depends_on:
       - zookeeper
 
@@ -64,9 +65,9 @@ services:
   #   volumes:
   #     - ./frontend:/app
 
-  pgadmin:
+  pgadmin1:
     image: dpage/pgadmin4
-    container_name: pgadmin
+    container_name: pgadmin1
     ports:
       - "5050:80"
     environment:

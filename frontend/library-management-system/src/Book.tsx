@@ -272,10 +272,11 @@ const Book: React.FC<BookProps> = ({ book, isAdmin }) => {
                       color: reservationStatus === "Ready" ? "green" : "orange",
                     }}
                   >
-                    <b>
-                      {reservationStatus === "Ready" ? "Pickup date:" : "Estimated pickup date:"}
-                    </b>{" "}
-                    {reservationDate}
+                    {reservationStatus !== "Ready" && (
+                      <>
+                        <b>Estimated pickup date:</b> {reservationDate}
+                      </>
+                    )}
                   </Typography>
                   {reservationStatus === "Ready" && (
                     <Typography sx={{ color: "green" }}>Ready for pickup!</Typography>

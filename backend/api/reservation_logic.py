@@ -4,6 +4,7 @@ from .utils.kafka_consumer import KafkaConsumer
 from .utils.kafka_producer import send_kafka_message
 from django.conf import settings
 from datetime import timedelta, date
+from confluent_kafka.admin import AdminClient, NewTopic
 import logging
 from api.serializers import (
     CreateBookQueueSerializer,
@@ -69,24 +70,34 @@ def create_reservation(book_id, user_id, queued):
     return queue_date, turn, status
 
 
+def process_return_update(event):
+    try:
+        book_id = event.get("book_id")
+        book = Book.objects.get(pk=book_id)
+        logger.info(f"Starting return transaction: {book.title}")
+        with transaction.atomic():
+            book_queue = BookQueue.objects.filter(book=book, status="Waiting").order_by("queue_date").first()
+            if book_queue:
+                book_queue.status = "Ready"
+                book_queue.save()
+                logger.info(f"Queue updated for book: {book.title}")
+            else:
+                inventory = Inventory.objects.get(book=book)
+                inventory.available_copies += 1
+                inventory.save()
+            logger.info(f"Inventory updated for book: {book.title}")
+    except Exception as e:
+        logger.error(f"Error processing return update: {e}")
+        print(f"Error processing return update: {e}")
 
-# def process_reservations(event):
-#     try:
-#         book_id = event.get('book_id')
-#         user_id = event.get('user_id')
-#         logger.info(f">>>> Reservation {book_id} {user_id}")
 
-#         if BookQueue.objects.filter(user_id=user_id, book_id=book_id).exists():
-#             logger.info("Reservation already exists")
-#             return
-
-#         serializer = CreateBookQueueSerializer(data=event)
-#         if serializer.is_valid():
-#             book_queue = serializer.save()
-
-#     except Exception as e:
-#         logger.info(f"Error processing reservations: {e}")
-
+def calculate_penalty(borrowed_book):
+    expected_return_date = borrowed_book.expected_return_date
+    returned_date = borrowed_book.returned_date
+    if returned_date > expected_return_date:
+        days_overdue = (returned_date - expected_return_date).days
+        return days_overdue * 10
+    return 0
 
 def process_author_creation(event):
     try:
@@ -108,7 +119,25 @@ def start_author_consumer():
     consumer = KafkaConsumer("author_created", "author_group", settings.KAFKA_CONFIG["bootstrap.servers"])
     consumer.start_in_thread(process_author_creation)
 
+
 def start_reservation_consumer():
     consumer = KafkaConsumer("reservation_created", "reservation_group", settings.KAFKA_CONFIG["bootstrap.servers"])
-    #consumer.start_in_thread(process_inventory_update)
     consumer.start_in_thread(process_inventory_update)
+
+
+def start_return_consumer():
+    consumer = KafkaConsumer("borrowing_returned", "return_group", settings.KAFKA_CONFIG["bootstrap.servers"])
+    consumer.start_in_thread(process_return_update)
+
+
+def ensure_kafka_topics_exist(bootstrap_servers, topics):
+    admin_client = AdminClient({'bootstrap.servers': bootstrap_servers})
+    existing_topics = admin_client.list_topics(timeout=10).topics
+
+    for topic in topics:
+        if topic not in existing_topics:
+            try:
+                admin_client.create_topics([NewTopic(topic, num_partitions=1, replication_factor=1)])
+                print(f"Created topic: {topic}")
+            except Exception as e:
+                print(f"Failed to create topic {topic}: {e}")
