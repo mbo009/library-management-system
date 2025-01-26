@@ -246,6 +246,7 @@ class CreateAuthorView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+@method_decorator(csrf_exempt, name="dispatch")
 class ReserveBook(APIView):
     def post(self, request, *args, **kwargs):
         logger.info("ReserveBook POST request received")

@@ -1,6 +1,7 @@
 import React from "react";
 import { Box, Button, Stack, Tooltip } from "@mui/material";
 import default_cover from "../assets/default_cover.jpg";
+import { MEDIA_BASE_URL } from "../config";
 
 interface Size {
   width: number;
@@ -40,7 +41,7 @@ const CoverPhotoComponent: React.FC<CoverPhotoComponentProps> = ({
             selectedCoverPhoto
               ? URL.createObjectURL(selectedCoverPhoto)
               : book.cover_url !== "/covers/null"
-              ? `http://localhost:8000${book.cover_url}`
+              ? `${MEDIA_BASE_URL}${book.cover_url}`
               : default_cover
           }
           alt="Cover"

@@ -63,6 +63,7 @@ type BookProps = {
   setEditedBook: any;
 };
 
+
 function getCookie(name: string) {
   let cookieValue = null;
   if (document.cookie && document.cookie !== "") {
@@ -93,9 +94,12 @@ const Book: React.FC<BookProps> = ({
   const [reservationDate, setReservationDate] = useState<string | null>(null);
 
   useEffect(() => {
+    /*
     const csrftoken = getCookie("csrftoken");
-    if (!csrftoken)
+    if (!csrftoken) {
       return;
+    }
+      */
 
     const fetchBookQueue = async () => {
       try {
@@ -120,7 +124,7 @@ const Book: React.FC<BookProps> = ({
             method: "GET",
             headers: {
               "Content-Type": "application/json",
-              "X-CSRFToken": csrftoken,
+              //"X-CSRFToken": csrftoken,
             },
             credentials: "include",
           }
