@@ -7,10 +7,12 @@ import {
   List,
   ListItem,
   Typography,
+  Chip,
 } from "@mui/material";
 import { useState } from "react";
 import { Books } from "./types/BookList";
 import { Book } from "./types/Book";
+import { differenceInDays } from "date-fns";
 
 interface BookListProps {
   books: Books;
@@ -25,6 +27,12 @@ const BookList = ({ books, booksLoading }: BookListProps) => {
     newValue: number
   ): void => {
     setTab(newValue);
+  };
+
+  const calculateDaysLeft = (returnDate: string) => {
+    const today = new Date();
+    const returnDateObj = new Date(returnDate);
+    return differenceInDays(returnDateObj, today);
   };
 
   const renderBooks = (
@@ -47,7 +55,24 @@ const BookList = ({ books, booksLoading }: BookListProps) => {
     return (
       <List>
         {booksArr.map((book) => (
-          <ListItem key={book.bookID}>{book.title}</ListItem>
+          <ListItem key={book.bookID}>
+            <Box display="flex" justifyContent="space-between" width="100%">
+              <Typography>{book.title}</Typography>
+              {book.expected_return_date && (
+                <Chip
+                  label={`${calculateDaysLeft(
+                    book.expected_return_date
+                  )} days left`}
+                  color={
+                    calculateDaysLeft(book.expected_return_date) >= 0
+                      ? "success"
+                      : "error"
+                  }
+                  variant="outlined"
+                />
+              )}
+            </Box>
+          </ListItem>
         ))}
       </List>
     );
@@ -90,7 +115,10 @@ const BookList = ({ books, booksLoading }: BookListProps) => {
         <Box sx={{ flexGrow: 1 }}>
           {tab === 0 && (
             <Box sx={{ height: "100%" }}>
-              {renderBooks(books.currently_borrowed_books, "You didn't borrow any book yet!")}
+              {renderBooks(
+                books.currently_borrowed_books,
+                "You didn't borrow any book yet!"
+              )}
             </Box>
           )}
           {tab === 1 && (

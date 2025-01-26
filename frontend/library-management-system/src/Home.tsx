@@ -360,7 +360,7 @@ const Home = () => {
           )}
         </Paper>
       </Box>{" "}
-    </Stack >
+    </Stack>
   );
 };
 

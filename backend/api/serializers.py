@@ -10,6 +10,7 @@ from .models import (
     BorrowedBook,
     LibrarianKeys,
     InventoryManager,
+    Inventory,
 )
 from django.db.models import Max
 from django.db import transaction
@@ -38,28 +39,28 @@ class AuthorSerializer(serializers.ModelSerializer):
 class UserSerializer(serializers.ModelSerializer):
     queued_books = serializers.SerializerMethodField()
     borrowed_books = serializers.SerializerMethodField()
+
     class Meta:
         model = User
         fields = "__all__"
         extra_fields = ["queued_books", "borrowed_books"]
 
     def get_queued_books(self, obj):
-        queued_qs = BookQueue.objects.filter(user=obj, turn = 0)
+        queued_qs = BookQueue.objects.filter(user=obj, turn=0)
         return [
-            {"bookID": book.bookID, "title": book.title}
-            for book in queued_qs
+            {"bookID": entry.book.bookID, "title": entry.book.title}
+            for entry in queued_qs
         ]
 
     def get_borrowed_books(self, obj):
         borrowed_qs = BorrowedBook.objects.filter(
-        user=obj,
-        status="Picked up",
-        returned_date__isnull=True
-    )
+            user=obj, status="Picked up", returned_date__isnull=True
+        )
         return [
             {"bookID": entry.book.bookID, "title": entry.book.title}
             for entry in borrowed_qs
         ]
+
 
 class AuthorSerializer(serializers.ModelSerializer):
     class Meta:
@@ -75,6 +76,7 @@ class BookSerializer(serializers.ModelSerializer):
         source="language.shortcut", read_only=True
     )
     cover_url = serializers.SerializerMethodField()
+    expected_return_date = serializers.DateField(read_only=True)
 
     class Meta:
         model = Book
@@ -114,8 +116,10 @@ class CreateUpdateBookSerializer(serializers.ModelSerializer):
 
         with transaction.atomic():
             book = Book.objects.create(**validated_data)
+            if not book:
+                raise ValidationError("Book not created.")
             if total_copies:
-                InventoryManager().create_inventory(book, total_copies)
+                Inventory.objects.create_inventory(book, total_copies)
             logger.info(f"authors: {authors_data}")
             authors = Author.objects.filter(id__in=authors_data)
             book.authors.set(authors)
@@ -141,7 +145,7 @@ class CreateUpdateBookSerializer(serializers.ModelSerializer):
                 authors = Author.objects.filter(id__in=authors_data)
                 instance.authors.set(authors)
             if total_copies is not None:
-                InventoryManager().update_total_copies(instance, total_copies)
+                Inventory.objects.update_total_copies(instance, total_copies)
 
             if cover:
                 if instance.cover_path:

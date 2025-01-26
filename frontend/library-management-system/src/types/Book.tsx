@@ -17,4 +17,5 @@ export type Book = {
   genre: number;
   language: number;
   cover_url: string;
+  expected_return_date: string | null;
 };

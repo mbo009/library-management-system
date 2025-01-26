@@ -17,7 +17,16 @@ from api.serializers import CreateUpdateBookSerializer, BorrowedBookSerializer
 from .utils.kafka_producer import send_kafka_message
 from django.db import transaction
 from django.contrib.auth.hashers import make_password
-from api.models import User, LibrarianKeys, Book, Author, Language, Genre, BookQueue, BorrowedBook
+from api.models import (
+    User,
+    LibrarianKeys,
+    Book,
+    Author,
+    Language,
+    Genre,
+    BookQueue,
+    BorrowedBook,
+)
 from rest_framework.generics import (
     ListAPIView,
     RetrieveAPIView,
@@ -163,13 +172,10 @@ class AuthorUpdateView(UpdateAPIView):
 
 class CreateBookView(APIView):
     def post(self, request, *args, **kwargs):
-        # Deserialize the incoming data
         serializer = CreateUpdateBookSerializer(data=request.data)
         if serializer.is_valid():
-            # Save the book
             book = serializer.save()
 
-            # Send a Kafka event
             event_data = {
                 "id": book.bookID,
                 "title": book.title,
@@ -184,7 +190,6 @@ class CreateBookView(APIView):
                 value=event_data,
             )
 
-            # Return response
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -254,21 +259,33 @@ class ReserveBook(APIView):
             return Response(f"Bad request: {e}", status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            queued = BookQueue.objects.filter(book_id=book_id).order_by('queue_date')
+            queued = BookQueue.objects.filter(book_id=book_id).order_by("queue_date")
             if queued.filter(user_id=user_id).exists():
-                logger.info(f"User {user_id} is already in the queue for book_id={book_id}")
+                logger.info(
+                    f"User {user_id} is already in the queue for book_id={book_id}"
+                )
                 return Response(
                     {"status": "reserved", "message": "User is already in the queue"},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
             logger.info(f"Queue for book_id={book_id} fetched: {len(queued)} entries")
 
-            queue_date, turn, reservation_status = create_reservation(book_id, user_id, queued)
+            queue_date, turn, reservation_status = create_reservation(
+                book_id, user_id, queued
+            )
 
-
-            return Response({"available_date": queue_date, "status": reservation_status,"turn": turn}, status=status.HTTP_201_CREATED)
+            return Response(
+                {
+                    "available_date": queue_date,
+                    "status": reservation_status,
+                    "turn": turn,
+                },
+                status=status.HTTP_201_CREATED,
+            )
         except Exception as e:
-            logger.error(f"Reservation failed for book_id={book_id}, user_id={user_id}. Error: {e}")
+            logger.error(
+                f"Reservation failed for book_id={book_id}, user_id={user_id}. Error: {e}"
+            )
             return Response(
                 {"error": "Reservation could not be completed.", "details": str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -285,11 +302,17 @@ class ReserveBook(APIView):
             return Response(f"Bad request: {e}", status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            logger.info(f"Fetching reservation for book_id={book_id} and user_id={user_id}")
-            reserved = BookQueue.objects.filter(book_id=book_id, user_id=user_id).first()
+            logger.info(
+                f"Fetching reservation for book_id={book_id} and user_id={user_id}"
+            )
+            reserved = BookQueue.objects.filter(
+                book_id=book_id, user_id=user_id
+            ).first()
 
             if reserved is None:
-                logger.info(f"No reservation found for book_id={book_id}, user_id={user_id}")
+                logger.info(
+                    f"No reservation found for book_id={book_id}, user_id={user_id}"
+                )
                 return Response(
                     {"status": "not_reserved", "message": "No reservation found"},
                     status=status.HTTP_200_OK,
@@ -300,18 +323,21 @@ class ReserveBook(APIView):
                 {
                     "status": reserved.status,
                     "available_date": reserved.queue_date,
-                    "message": "User has a reservation"
+                    "message": "User has a reservation",
                 },
                 status=status.HTTP_200_OK,
             )
         except Exception as e:
-            logger.error(f"Error fetching reservation data for book_id={book_id}, user_id={user_id}. Error: {e}")
+            logger.error(
+                f"Error fetching reservation data for book_id={book_id}, user_id={user_id}. Error: {e}"
+            )
             return Response(
                 {"error": "Reservation data could not be fetched.", "details": str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
-@method_decorator(csrf_exempt, name='dispatch')
+
+@method_decorator(csrf_exempt, name="dispatch")
 class BorrowBook(APIView):
     @csrf_exempt
     def post(self, request, *args, **kwargs):
@@ -329,11 +355,16 @@ class BorrowBook(APIView):
             return Response(f"Bad request: {e}", status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            borrowed = BorrowedBook.objects.filter(book_id=book_id, user_id=user_id).first()
+            borrowed = BorrowedBook.objects.filter(
+                book_id=book_id, user_id=user_id
+            ).first()
             if borrowed:
                 logger.info(f"User {user_id} has already borrowed book_id={book_id}")
                 return Response(
-                    {"status": "borrowed", "message": "User has already borrowed the book"},
+                    {
+                        "status": "borrowed",
+                        "message": "User has already borrowed the book",
+                    },
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
@@ -344,7 +375,7 @@ class BorrowBook(APIView):
                 book=book,
                 borrowed_date=date.today(),
                 expected_return_date=date.today() + timedelta(days=14),
-                status = "Picked up"
+                status="Picked up",
             )
             borrowed.save()
             BookQueue.objects.filter(book_id=book_id, user_id=user_id).delete()
@@ -355,7 +386,9 @@ class BorrowBook(APIView):
                 status=status.HTTP_201_CREATED,
             )
         except Exception as e:
-            logger.error(f"Borrowing failed for book_id={book_id}, user_id={user_id}. Error: {e}")
+            logger.error(
+                f"Borrowing failed for book_id={book_id}, user_id={user_id}. Error: {e}"
+            )
             return Response(
                 {"error": "Borrowing could not be completed.", "details": str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -375,11 +408,16 @@ class ReturnBook(APIView):
             return Response(f"Bad request: {e}", status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            borrowed = BorrowedBook.objects.filter(book_id=book_id, user_id=user_id).first()
+            borrowed = BorrowedBook.objects.filter(
+                book_id=book_id, user_id=user_id
+            ).first()
             if not borrowed:
                 logger.info(f"User {user_id} has not borrowed book_id={book_id}")
                 return Response(
-                    {"status": "not_borrowed", "message": "User has not borrowed the book"},
+                    {
+                        "status": "not_borrowed",
+                        "message": "User has not borrowed the book",
+                    },
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
@@ -393,19 +431,23 @@ class ReturnBook(APIView):
                 "user_id": user_id,
             }
             send_kafka_message(
-                topic=settings.KAFKA_CONFIG["topics"].get(
-                    "borrowing_returned"
-                ),
+                topic=settings.KAFKA_CONFIG["topics"].get("borrowing_returned"),
                 key=str(book_id) + ";" + str(user_id),
                 value=event_data,
             )
             penalty = calculate_penalty(borrowed)
             return Response(
-                {"status": "returned", "message": "Book returned successfully", "penalty": penalty},
+                {
+                    "status": "returned",
+                    "message": "Book returned successfully",
+                    "penalty": penalty,
+                },
                 status=status.HTTP_201_CREATED,
             )
         except Exception as e:
-            logger.error(f"Returning failed for book_id={book_id}, user_id={user_id}. Error: {e}")
+            logger.error(
+                f"Returning failed for book_id={book_id}, user_id={user_id}. Error: {e}"
+            )
             return Response(
                 {"error": "Returning could not be completed.", "details": str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -451,7 +493,9 @@ def find_book(request):
             logger.debug(f"Serialized books data: {serializer.data}")
             return JsonResponse(serializer.data, safe=False)
         except Exception as e:
-            logger.error(f"Error occurred while searching for books: {e}", exc_info=True)
+            logger.error(
+                f"Error occurred while searching for books: {e}", exc_info=True
+            )
             return JsonResponse(
                 {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
@@ -460,6 +504,7 @@ def find_book(request):
         return JsonResponse(
             {"message": "No search query provided."}, status=status.HTTP_400_BAD_REQUEST
         )
+
 
 def find_user(request):
     if request.method != "GET":
@@ -476,7 +521,6 @@ def find_user(request):
         return JsonResponse(
             "error: User sending request is not a librarian", status=403
         )
-
 
     try:
         query = request.GET.get("query")
@@ -670,10 +714,14 @@ def get_user_books(request):
             "previously_borrowed_books": user.previously_borrowed_books.all(),
             "queued_books": user.queued_books.all(),
         }
-
+        for book in user.currently_borrowed_books.all():
+            logger.info(
+                f"Book: {book.title}, Expected Return Date: {book.expected_return_date}"
+            )
         data = {
             key: BookSerializer(value, many=True).data for key, value in books.items()
         }
+        logger.info(data)
         return JsonResponse(data, safe=False, status=status.HTTP_200_OK)
     except Exception as e:
         logger.exception("Unexpected error occurred during get user books")

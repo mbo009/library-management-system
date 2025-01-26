@@ -3,6 +3,7 @@ from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
 from datetime import date
 from api.utils.generate_key import generate_key
 from django.core.exceptions import ObjectDoesNotExist
+from django.db.models import F
 
 
 class Author(models.Model):
@@ -51,13 +52,6 @@ class Book(models.Model):
 
     def available_copies(self):
         return Inventory.objects.get(book=self).available_copies
-
-    def save(self, *args, **kwargs):
-        is_new = self.pk is None
-        with transaction.atomic():
-            super().save(*args, **kwargs)
-            if is_new:
-                Inventory.objects.create_inventory(book=self, total_copies=0)
 
 
 class UserManager(BaseUserManager):
@@ -119,8 +113,8 @@ class User(AbstractBaseUser):
         return Book.objects.filter(
             borrowedbook__user=self,
             borrowedbook__returned_date__isnull=True,
-            borrowedbook__status__in=["Picked up", "Reserved"]
-        )
+            borrowedbook__status__in=["Picked up", "Reserved"],
+        ).annotate(expected_return_date=F("borrowedbook__expected_return_date"))
 
     @property
     def previously_borrowed_books(self):
@@ -130,7 +124,7 @@ class User(AbstractBaseUser):
         return Book.objects.filter(
             borrowedbook__user=self,
             borrowedbook__returned_date__isnull=False,
-            borrowedbook__status__in=["Returned"]
+            borrowedbook__status__in=["Returned"],
         )
 
     @property
@@ -221,7 +215,6 @@ class InventoryManager(models.Manager):
 
 
 class Inventory(models.Model):
-    id = models.AutoField(primary_key=True, db_column="id")
     book = models.ForeignKey(Book, on_delete=models.CASCADE)
     total_copies = models.IntegerField(default=0)
     available_copies = models.IntegerField(default=0)
