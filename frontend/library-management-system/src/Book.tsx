@@ -17,6 +17,7 @@ import {
   CircularProgress,
 } from "@mui/material";
 import transition from "./utils/transition";
+import { API_BASE_URL } from "./config";
 
 interface Author {
   id: number;
@@ -79,25 +80,27 @@ const Book: React.FC<BookProps> = ({ book, isAdmin }) => {
   
   const [selected, setSelected] = useState<number | null>(null);
   const [bookQueue, setBookQueue] = useState<Array<BookQueue>>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  const fetchBookQueue = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/book_queue/${book.bookID}/`);
+      setLoading(false);
+
+      if (!response.ok) {
+        throw Error(`Error ${response.status}`);
+      }
+      
+      let bookQueue: Array<BookQueue> = await response.json();
+      bookQueue = bookQueue.sort((a, b) => a.turn - b.turn);
+      setBookQueue(bookQueue);
+    } 
+    catch (error) {
+      
+    }
+  }
 
   useEffect(() => {
-
-    const fetchBookQueue = async () => {
-      try {
-        const response = await fetch(`http://localhost:8000/api/book_queue/${book.bookID}/`);
-        setLoading(false);
-
-        if (!response.ok) {
-          throw Error(`Error ${response.status}`);
-        }
-        const data = await response.json();
-        setBookQueue(data);
-      } 
-      catch (error) {
-        
-      }
-    }
 
     setSelected(null);
     setLoading(true);
@@ -111,7 +114,7 @@ const Book: React.FC<BookProps> = ({ book, isAdmin }) => {
       if (!csrftoken)
         throw Error(`Error`);
 
-      const response = await fetch(`http://localhost:8000/api/reserve-book/`, {
+      const response = await fetch(`${API_BASE_URL}/reserve-book/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -18,6 +18,8 @@ import { UserSummary } from "./types/UserSummary";
 import { UserProfile } from "./types/UserProfile";
 import AdminPanel from "./AdminPanel";
 import UserPanel from "./UserPanel";
+import { API_BASE_URL } from "./config";
+
 
 const Home = () => {
   const [query, setQuery] = useState<string>("");
@@ -57,7 +59,7 @@ const Home = () => {
       console.log("Fetching user books...");
 
       const response = await fetch(
-        "http://localhost:8000/api/get_user_books/",
+        `${API_BASE_URL}/get_user_books/`,
         {
           method: "GET",
           headers: {
@@ -95,7 +97,7 @@ const Home = () => {
       console.log("Searching books matching query: ", query);
 
       const response = await fetch(
-        `http://localhost:8000/api/find_book/?query=${query}`,
+        `${API_BASE_URL}/find_book/?query=${query}`,
         {
           method: "GET",
           headers: {
@@ -125,7 +127,7 @@ const Home = () => {
       console.log("Searching users matching query: ", query);
 
       const response = await fetch(
-        `http://localhost:8000/api/find_user/?query=${query}`,
+        `${API_BASE_URL}/find_user/?query=${query}`,
         {
           method: "GET",
           headers: {

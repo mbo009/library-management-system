@@ -13,7 +13,7 @@ import {
   CircularProgress,
 } from "@mui/material";
 import transition from "../utils/transition";
-
+import { API_BASE_URL } from "../config";
 
 
 interface Language {
@@ -41,7 +41,7 @@ const EditLanguages = () => {
     const fetchLanguages = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`http://localhost:8000/api/languages/`);
+        const response = await fetch(`${API_BASE_URL}/languages/`);
 
         if (response.ok) {
           setLanguages(await response.json());
@@ -72,7 +72,7 @@ const EditLanguages = () => {
 
     try {
       setLoading(true);
-      const response = await fetch(`http://localhost:8000/api/languages/${selected.languageID}/`, {
+      const response = await fetch(`${API_BASE_URL}/languages/${selected.languageID}/`, {
         method: "PUT", 
         body: JSON.stringify(requestBody),
         headers: {
@@ -104,7 +104,7 @@ const EditLanguages = () => {
 
     try {
       setLoading(true);
-      const response = await fetch(`http://localhost:8000/api/languages/`, {
+      const response = await fetch(`${API_BASE_URL}/languages/`, {
         method: "POST", 
         body: JSON.stringify(requestBody),
         headers: {
@@ -134,7 +134,7 @@ const EditLanguages = () => {
 
     try {
       setLoading(true);
-      const response = await fetch(`http://localhost:8000/api/languages/${selected.languageID}/`, {
+      const response = await fetch(`${API_BASE_URL}/languages/${selected.languageID}/`, {
         method: "DELETE", 
         body: JSON.stringify(requestBody),
         headers: {

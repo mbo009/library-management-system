@@ -8,6 +8,7 @@ import {
   Container,
 } from "@mui/material";
 import transition from "../utils/transition";
+import { API_BASE_URL } from "../config";
 
 interface Author {
   id: number | null;
@@ -37,7 +38,7 @@ const EditAuthor: React.FC<EditAuthorProps> = ({ create }) => {
 
     const fetchAuthor = async () => {
       try {
-        const response = await fetch(`http://localhost:8000/api/author/${authorID}`);
+        const response = await fetch(`${API_BASE_URL}/author/${authorID}`);
         if (!response.ok) {
           throw new Error(`Status: ${response.status}`);
         }
@@ -64,11 +65,11 @@ const EditAuthor: React.FC<EditAuthorProps> = ({ create }) => {
 
     let api, method;
     if (create) {
-      api = "http://localhost:8000/api/create_author/";
+      api = `${API_BASE_URL}/create_author/`;
       method = "POST";
     }
     else {
-      api = `http://localhost:8000/api/update_author/${author.id}/`;
+      api = `${API_BASE_URL}/update_author/${author.id}/`;
       method = "PUT";
     }
 
