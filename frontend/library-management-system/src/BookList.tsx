@@ -52,7 +52,6 @@ const BookList = ({ books, booksLoading }: BookListProps) => {
       </List>
     );
   };
-
   return (
     <Paper
       elevation={20}
@@ -91,13 +90,13 @@ const BookList = ({ books, booksLoading }: BookListProps) => {
         <Box sx={{ flexGrow: 1 }}>
           {tab === 0 && (
             <Box sx={{ height: "100%" }}>
-              {renderBooks(books.borrowed, "You didn't borrow any book yet!")}
+              {renderBooks(books.currently_borrowed_books, "You didn't borrow any book yet!")}
             </Box>
           )}
           {tab === 1 && (
             <Box sx={{ height: "100%" }}>
               {renderBooks(
-                books.returned,
+                books.previously_borrowed_books,
                 "You haven't returned any book yet!"
               )}
             </Box>
@@ -105,7 +104,7 @@ const BookList = ({ books, booksLoading }: BookListProps) => {
           {tab === 2 && (
             <Box sx={{ height: "100%" }}>
               {renderBooks(
-                books.queued,
+                books.queued_books,
                 "You haven't queued for any book yet!"
               )}
             </Box>

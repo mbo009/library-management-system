@@ -7,6 +7,7 @@ from .models import (
     User,
     Language,
     Genre,
+    BorrowedBook,
     LibrarianKeys,
     InventoryManager,
 )
@@ -35,10 +36,30 @@ class AuthorSerializer(serializers.ModelSerializer):
 
 
 class UserSerializer(serializers.ModelSerializer):
+    queued_books = serializers.SerializerMethodField()
+    borrowed_books = serializers.SerializerMethodField()
     class Meta:
         model = User
         fields = "__all__"
+        extra_fields = ["queued_books", "borrowed_books"]
 
+    def get_queued_books(self, obj):
+        queued_qs = BookQueue.objects.filter(user=obj, turn = 0)
+        return [
+            {"bookID": book.bookID, "title": book.title}
+            for book in queued_qs
+        ]
+
+    def get_borrowed_books(self, obj):
+        borrowed_qs = BorrowedBook.objects.filter(
+        user=obj,
+        status="Picked up",
+        returned_date__isnull=True
+    )
+        return [
+            {"bookID": entry.book.bookID, "title": entry.book.title}
+            for entry in borrowed_qs
+        ]
 
 class AuthorSerializer(serializers.ModelSerializer):
     class Meta:
@@ -199,3 +220,9 @@ class GenreSerializer(serializers.ModelSerializer):
         model = Genre
         fields = ["genreID", "name"]
         extra_kwargs = {"genreID": {"read_only": True}}
+
+
+class BorrowedBookSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = BorrowedBook
+        fields = "__all__"

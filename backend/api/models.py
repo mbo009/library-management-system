@@ -113,14 +113,24 @@ class User(AbstractBaseUser):
 
     @property
     def currently_borrowed_books(self):
+        """
+        Returns books that the user has currently borrowed (not returned or cancelled).
+        """
         return Book.objects.filter(
-            borrowedbook__user=self, borrowedbook__returned_date__isnull=True
+            borrowedbook__user=self,
+            borrowedbook__returned_date__isnull=True,
+            borrowedbook__status__in=["Picked up", "Reserved"]
         )
 
     @property
     def previously_borrowed_books(self):
+        """
+        Returns books that the user has previously borrowed (returned or cancelled).
+        """
         return Book.objects.filter(
-            borrowedbook__user=self, borrowedbook__returned_date__isnull=False
+            borrowedbook__user=self,
+            borrowedbook__returned_date__isnull=False,
+            borrowedbook__status__in=["Returned"]
         )
 
     @property
@@ -173,6 +183,14 @@ class BookQueue(models.Model):
     book = models.ForeignKey(Book, on_delete=models.CASCADE)
     queue_date = models.DateField(default=date.today)
     turn = models.IntegerField()
+    status = models.CharField(
+        max_length=50,
+        choices=[
+            ("Ready", "Ready"),
+            ("Waiting", "Waiting"),
+        ],
+        default="Waiting",
+    )
 
     def __str__(self):
         return f"{self.book.title} by {self.user.first_name} {self.user.last_name}"
@@ -203,7 +221,7 @@ class InventoryManager(models.Manager):
 
 
 class Inventory(models.Model):
-    id = models.AutoField(primary_key=True)
+    id = models.AutoField(primary_key=True, db_column="id")
     book = models.ForeignKey(Book, on_delete=models.CASCADE)
     total_copies = models.IntegerField(default=0)
     available_copies = models.IntegerField(default=0)

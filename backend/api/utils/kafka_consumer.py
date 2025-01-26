@@ -28,7 +28,7 @@ class KafkaConsumer:
             if msg.error():
                 print(f"Error: {msg.error()}")
                 break
-
+            print("Received message: {msg.value().decode('utf-8')}")
             decoded_message = json.loads(msg.value().decode('utf-8'))
             logger.info("test", decoded_message)
             message_processor(decoded_message)
@@ -36,7 +36,7 @@ class KafkaConsumer:
 
 
     def start_in_thread(self, message_processor):
-        # thread = Thread(target=self.start, args=(message_processor,))
-        # thread.start()
-        self.start(message_processor)
+        thread = Thread(target=self.start, args=(message_processor,))
+        thread.start()
+        # self.start(message_processor)
         print(f"Kafka consumer thread started for topic: {self.topic}")

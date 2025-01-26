@@ -10,4 +10,5 @@ export type UserProfile = {
   is_librarian: boolean;
   last_login: string;
   borrowed_books: Array<Book>;
+  queued_books: Array<Book>;
 };
