@@ -2,6 +2,7 @@ from django.urls import path, include
 from . import views
 from rest_framework.routers import DefaultRouter
 
+
 # router = DefaultRouter()
 # router.register(r'genres', views.GenreViewSet)
 # router.register(r'languages', views.LanguageViewSet)
@@ -50,6 +51,11 @@ urlpatterns = [
             {"get": "retrieve", "put": "update", "delete": "destroy"}
         ),
         name="language-detail",
+    ),
+    path(
+        "librarian_keys/",
+        views.LibrarianKeyView.as_view(),
+        name="librarian_keys",
     ),
     path("book_queue/<int:book_id>/", views.BookQueueView.as_view(), name="book-queue"),
     path("upload_cover/", views.upload_cover, name="upload_cover"),

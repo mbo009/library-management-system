@@ -11,8 +11,10 @@ export type Book = {
   isbn: string;
   published_date: string;
   page_count: number;
+  total_copies: number;
   created_at: string;
   updated_at: string;
   genre: number;
   language: number;
+  cover_url: string;
 };

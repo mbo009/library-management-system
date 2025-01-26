@@ -17,6 +17,7 @@ import {
   CircularProgress,
 } from "@mui/material";
 import transition from "./utils/transition";
+import CoverFrame from "./librarian/CoverFrame";
 
 interface Author {
   id: number;
@@ -39,6 +40,7 @@ interface Book {
   updated_at: string;
   genre: number;
   language: number;
+  cover_url: string;
 }
 
 interface BookQueue {
@@ -100,6 +102,7 @@ const Book: React.FC<BookProps> = ({ book, isAdmin }) => {
 
       }
     }
+ 
     const fetchReservationStatus = async () => {
       try {
         const response = await fetch(`http://localhost:8000/api/reserve-book/${book.bookID}/`,
@@ -130,7 +133,6 @@ const Book: React.FC<BookProps> = ({ book, isAdmin }) => {
 
       }
     }
-
 
     setSelected(null);
     setLoading(true);
@@ -191,6 +193,7 @@ const Book: React.FC<BookProps> = ({ book, isAdmin }) => {
         justifyContent="center"
         gap={2}
       >
+        <CoverFrame selectedCoverPhoto={null} book={book} editable={false} />
         <Typography variant="h2" sx={{ mb: "15px" }}>
           {book.title}
         </Typography>
@@ -286,7 +289,6 @@ const Book: React.FC<BookProps> = ({ book, isAdmin }) => {
           </>
         ) : (
           <Fragment>
-
             {bookQueue.length > 0 ? (
               <Fragment>
                 <TableContainer sx={{ mt: "50px" }} component={Paper}>
@@ -304,7 +306,9 @@ const Book: React.FC<BookProps> = ({ book, isAdmin }) => {
                       {bookQueue.map((row, index) => (
                         <TableRow
                           key={row.book_queue_id}
-                          sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
+                          sx={{
+                            "&:last-child td, &:last-child th": { border: 0 },
+                          }}
                         >
                           <TableCell>
                             <Checkbox
@@ -333,6 +337,8 @@ const Book: React.FC<BookProps> = ({ book, isAdmin }) => {
                   Borrow
                 </Button>
               </Fragment>
+            ) : loading ? (
+              <CircularProgress />
             ) : (
               loading ? (
                 <CircularProgress />
@@ -340,9 +346,6 @@ const Book: React.FC<BookProps> = ({ book, isAdmin }) => {
                 <Typography sx={{ mt: "50px" }}>No reservations</Typography>
               )
             )}
-
-
-
             <Button
               sx={{ mt: "20px" }}
               onClick={() => window.open(`${window.location.origin}/librarian/book?book_id=${book.bookID}`)}
@@ -353,7 +356,7 @@ const Book: React.FC<BookProps> = ({ book, isAdmin }) => {
         )}
 
       </Box>
-    </Container >
+    </Container>
   );
 };
 

@@ -50,9 +50,18 @@ services:
     depends_on:
       - kafka
       - elasticsearch
-    command: [ "/app/wait-for-it.sh", "kafka:9092", "--", "sh", "-c", "python manage.py runserver 0.0.0.0:8000" ]
+    command:
+      [
+        "/app/wait-for-it.sh",
+        "kafka:9092",
+        "--",
+        "sh",
+        "-c",
+        "python manage.py runserver 0.0.0.0:8000",
+      ]
     volumes:
       - ./backend:/app
+      - ./backend/media:/app/media
 
   # frontend:
   #   build:
@@ -86,7 +95,15 @@ services:
       - ELASTICSEARCH_URL=http://elasticsearch:9200
     env_file:
       - .env
-    command: [ "./wait-for-it.sh", "backend:8000", "--", "sh", "-c", "python manage.py start_inventory_consumer" ]
+    command:
+      [
+        "./wait-for-it.sh",
+        "backend:8000",
+        "--",
+        "sh",
+        "-c",
+        "python manage.py start_inventory_consumer",
+      ]
     depends_on:
       - backend
 

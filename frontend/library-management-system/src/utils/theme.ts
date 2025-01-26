@@ -1,4 +1,5 @@
 import { createTheme, ThemeOptions } from "@mui/material";
+import "@fontsource/poppins/index.css";
 
 const themeOptions: ThemeOptions = {
   palette: {
@@ -13,22 +14,26 @@ const themeOptions: ThemeOptions = {
     },
   },
   typography: {
-    fontFamily: '"Roboto", "Arial", sans-serif',
+    fontFamily: '"Poppins", "Roboto", "Arial", sans-serif',
     h1: {
       fontSize: "3rem",
-      fontWeight: 600,
+      fontWeight: 900,
     },
     h2: {
       fontSize: "1.75rem",
-      fontWeight: 600,
+      fontWeight: 700,
     },
     h3: {
       fontSize: "1.5rem",
-      fontWeight: 600,
+      fontWeight: 500,
     },
     h4: {
       fontSize: "1.2rem",
-      fontWeight: 500,
+      fontWeight: 400,
+    },
+    body1: {
+      fontSize: "1rem",
+      fontWeight: 300,
     },
   },
 };

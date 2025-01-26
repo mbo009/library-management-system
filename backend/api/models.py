@@ -1,6 +1,8 @@
-from django.db import models
+from django.db import models, transaction
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
 from datetime import date
+from api.utils.generate_key import generate_key
+from django.core.exceptions import ObjectDoesNotExist
 
 
 class Author(models.Model):
@@ -46,6 +48,16 @@ class Book(models.Model):
 
     def __str__(self):
         return self.title
+
+    def available_copies(self):
+        return Inventory.objects.get(book=self).available_copies
+
+    def save(self, *args, **kwargs):
+        is_new = self.pk is None
+        with transaction.atomic():
+            super().save(*args, **kwargs)
+            if is_new:
+                Inventory.objects.create_inventory(book=self, total_copies=0)
 
 
 class UserManager(BaseUserManager):
@@ -127,8 +139,9 @@ class User(AbstractBaseUser):
 
 
 class LibrarianKeys(models.Model):
-    librarian_key = models.CharField(max_length=32, primary_key=True)
-    used = models.BooleanField(default=False)
+    librarian_key = models.CharField(
+        max_length=32, primary_key=True, default=generate_key, editable=False
+    )
     librarian_id = models.ForeignKey(
         User, on_delete=models.CASCADE, blank=True, null=True
     )
@@ -155,7 +168,6 @@ class BorrowedBook(models.Model):
         ],
         default="Reserved",
     )
-
 
     def is_returned(self):
         return self.returned_date is not None
@@ -184,11 +196,37 @@ class BookQueue(models.Model):
         return f"{self.book.title} by {self.user.first_name} {self.user.last_name}"
 
 
+class InventoryManager(models.Manager):
+    def create_inventory(self, book, total_copies):
+        inventory = self.create(
+            book=book, total_copies=total_copies, available_copies=total_copies
+        )
+        return inventory
+
+    def update_total_copies(self, book, total_copies):
+        try:
+            if total_copies < 0:
+                raise ValueError("Total copies cannot be negative.")
+            inventory = Inventory.objects.filter(book=book).first()
+            used_copies = inventory.total_copies - inventory.available_copies
+            if total_copies < used_copies:
+                raise ValueError("Total copies cannot be less than available copies.")
+            inventory.available_copies += total_copies - inventory.total_copies
+            inventory.total_copies = total_copies
+
+            inventory.save()
+            return inventory
+        except ObjectDoesNotExist:
+            raise ValueError("Inventory for the specified book does not exist.")
+
+
 class Inventory(models.Model):
     id = models.AutoField(primary_key=True, db_column="id")
     book = models.ForeignKey(Book, on_delete=models.CASCADE)
     total_copies = models.IntegerField(default=0)
     available_copies = models.IntegerField(default=0)
+
+    objects = InventoryManager()
 
     class Meta:
         db_table = "inventory"

@@ -1,6 +1,16 @@
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
-from .models import Book, Author, BookQueue, User, Language, Genre, BorrowedBook
+from .models import (
+    Book,
+    Author,
+    BookQueue,
+    User,
+    Language,
+    Genre,
+    BorrowedBook,
+    LibrarianKeys,
+    InventoryManager,
+)
 from django.db.models import Max
 from django.db import transaction
 from django.core.files.storage import default_storage
@@ -11,6 +21,12 @@ import ast
 from django.conf import settings
 
 logger = logging.getLogger(__name__)
+
+
+class LibrarianKeySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = LibrarianKeys
+        fields = "__all__"
 
 
 class AuthorSerializer(serializers.ModelSerializer):
@@ -45,6 +61,12 @@ class UserSerializer(serializers.ModelSerializer):
             for entry in borrowed_qs
         ]
 
+class AuthorSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Author
+        fields = "__all__"
+
+
 class BookSerializer(serializers.ModelSerializer):
     authors = AuthorSerializer(many=True)
     genre_name = serializers.CharField(source="genre.name", read_only=True)
@@ -67,6 +89,7 @@ class BookSerializer(serializers.ModelSerializer):
 class CreateUpdateBookSerializer(serializers.ModelSerializer):
     authors = serializers.CharField()
     cover = serializers.ImageField(required=False)
+    total_copies = serializers.IntegerField(required=False)
 
     class Meta:
         model = Book
@@ -87,9 +110,12 @@ class CreateUpdateBookSerializer(serializers.ModelSerializer):
         logger.info(f"Data: {validated_data}")
         authors_data = validated_data.pop("authors")
         cover = validated_data.pop("cover", None)
+        total_copies = validated_data.pop("total_copies", None)
 
         with transaction.atomic():
             book = Book.objects.create(**validated_data)
+            if total_copies:
+                InventoryManager().create_inventory(book, total_copies)
             logger.info(f"authors: {authors_data}")
             authors = Author.objects.filter(id__in=authors_data)
             book.authors.set(authors)
@@ -103,8 +129,10 @@ class CreateUpdateBookSerializer(serializers.ModelSerializer):
         return book
 
     def update(self, instance, validated_data):
+        logger.info(f"Data: {validated_data}")
         authors_data = validated_data.pop("authors", None)
         cover = validated_data.pop("cover", None)
+        total_copies = validated_data.pop("total_copies", None)
 
         with transaction.atomic():
             for attr, value in validated_data.items():
@@ -112,6 +140,9 @@ class CreateUpdateBookSerializer(serializers.ModelSerializer):
             if authors_data is not None:
                 authors = Author.objects.filter(id__in=authors_data)
                 instance.authors.set(authors)
+            if total_copies is not None:
+                InventoryManager().update_total_copies(instance, total_copies)
+
             if cover:
                 if instance.cover_path:
                     cover_path = os.path.join(settings.MEDIA_ROOT, instance.cover_path)

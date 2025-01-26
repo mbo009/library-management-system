@@ -27,7 +27,7 @@ const Logo: React.FC<LogoProps> = ({ padding = 5, scalingConstant = 1 }) => {
             bgcolor: "white",
             cursor: "pointer",
             transition: "background-color 0.3s",
-            zIndex: 100,
+            zIndex: 10,
             animation:
               "float 12s ease-in-out infinite, rotate 12s ease-in-out infinite",
             "&:hover": {

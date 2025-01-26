@@ -1,43 +1,57 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   TextField,
   Box,
   Button,
-  Typography,
   Stack,
-  Container,
   Checkbox,
   List,
   ListItem,
   ListItemButton,
   CircularProgress,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from "@mui/material";
 import transition from "../utils/transition";
 
-
-
 interface Language {
-    languageID: number | null;
-    name: string;
-    shortcut: string;
-  }
+  languageID: number | null;
+  name: string;
+  shortcut: string;
+}
 
-const EditLanguages = () => {
-  const [languages, _setLanguages] = useState<Array<Language>>([]);
-  const [selected, setSelected] = useState<Language>({ languageID: null, name: "", shortcut: "" });
+type EditLanguagesProps = {
+  languages: Array<Language>;
+  setLanguages: any;
+  setAlertMessage: (message: string) => void;
+};
+
+const EditLanguages: React.FC<EditLanguagesProps> = ({
+  languages,
+  setLanguages,
+  setAlertMessage,
+}) => {
+  const [selected, setSelected] = useState<Language>({
+    languageID: null,
+    name: "",
+    shortcut: "",
+  });
   const [loading, setLoading] = useState<boolean>(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
 
-  const setLanguages = (languages: Array<Language>) => {
-    languages.sort((g1, g2) => g1.name.toLowerCase().localeCompare(g2.name.toLowerCase()));
-    _setLanguages(languages);
-  }
+  const handleDialogClose = () => setDialogOpen(false);
+  const handleConfirmDelete = () => {
+    handleDialogClose();
+    handleDelete();
+  };
 
   const deselect = () => {
     setSelected({ languageID: null, name: "", shortcut: "" });
-  }
+  };
 
   useEffect(() => {
-
     const fetchLanguages = async () => {
       try {
         setLoading(true);
@@ -45,67 +59,67 @@ const EditLanguages = () => {
 
         if (response.ok) {
           setLanguages(await response.json());
-        }
-        else {
+        } else {
           alert("Failed to fetch languages");
         }
-      } 
-      catch (error) {
+      } catch (error) {
         alert("Failed to fetch languages " + error);
-      }
-      finally {
+      } finally {
         setLoading(false);
       }
-    }
+    };
 
     fetchLanguages();
+  }, [setLanguages]);
 
-  }, []);
-
-  let original = languages.find(language => language.languageID === selected.languageID);
+  let original = languages.find(
+    (language) => language.languageID === selected.languageID
+  );
 
   const handleSaveChanges = async () => {
     const requestBody = {
       name: selected.name,
       shortcut: selected.shortcut,
-    }
+    };
 
     try {
       setLoading(true);
-      const response = await fetch(`http://localhost:8000/api/languages/${selected.languageID}/`, {
-        method: "PUT", 
-        body: JSON.stringify(requestBody),
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
+      const response = await fetch(
+        `http://localhost:8000/api/languages/${selected.languageID}/`,
+        {
+          method: "PUT",
+          body: JSON.stringify(requestBody),
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
       if (!response.ok) {
         throw new Error(`Status: ${response.status}`);
       }
 
-      const index = languages.findIndex(language => language.languageID === selected.languageID);
+      const index = languages.findIndex(
+        (language) => language.languageID === selected.languageID
+      );
       languages[index] = await response.json();
       deselect();
       setLanguages([...languages]);
-    }
-    catch (error) {
-
-    }
-    finally {
+    } catch (error) {
+    } finally {
       setLoading(false);
     }
-  }
+  };
 
   const handleAdd = async () => {
     const requestBody = {
       name: selected.name,
       shortcut: selected.shortcut,
-    }
+    };
 
     try {
       setLoading(true);
       const response = await fetch(`http://localhost:8000/api/languages/`, {
-        method: "POST", 
+        method: "POST",
         body: JSON.stringify(requestBody),
         headers: {
           "Content-Type": "application/json",
@@ -115,67 +129,65 @@ const EditLanguages = () => {
         throw new Error(`Status: ${response.status}`);
       }
 
-      const newLanguage = await response.json()
+      const newLanguage = await response.json();
       deselect();
-      setLanguages([...languages, newLanguage ]);
-    }
-    catch (error) {
-
-    }
-    finally {
+      setLanguages([...languages, newLanguage]);
+      setAlertMessage(`Language ${selected.name} added successfully`);
+    } catch (error) {
+      setAlertMessage(`Failed to add language ${selected.name}`);
+    } finally {
       setLoading(false);
     }
-  }
+  };
 
   const handleDelete = async () => {
     const requestBody = {
       languageID: selected.languageID,
-    }
+    };
 
     try {
       setLoading(true);
-      const response = await fetch(`http://localhost:8000/api/languages/${selected.languageID}/`, {
-        method: "DELETE", 
-        body: JSON.stringify(requestBody),
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
+      const response = await fetch(
+        `http://localhost:8000/api/languages/${selected.languageID}/`,
+        {
+          method: "DELETE",
+          body: JSON.stringify(requestBody),
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
       if (!response.ok) {
         throw new Error(`Status: ${response.status}`);
       }
 
-      const newLanguages = languages.filter(language => language.languageID !== selected.languageID);
+      const newLanguages = languages.filter(
+        (language) => language.languageID !== selected.languageID
+      );
+      setAlertMessage(`Language ${selected.name} deleted successfully`);
       deselect();
       setLanguages([...newLanguages]);
-    }
-    catch (error) {
-
-    }
-    finally {
+    } catch (error) {
+      setAlertMessage(`Failed to delete language ${selected.name}`);
+    } finally {
       setLoading(false);
     }
-
-  }
+  };
 
   console.log(selected);
 
-  const isInvalid = selected.name.length === 0 || selected.shortcut.length === 0;
+  const isInvalid =
+    selected.name.length === 0 || selected.shortcut.length === 0;
 
   return (
-    <Container maxWidth="sm" sx={{ paddingY: 5 }}>
-      <Box
-        position="relative"
-        display="flex"
-        flexDirection="column"
-        alignItems="center"
-        justifyContent="center"
-        gap={2}
-      >
-        <Typography variant="h2" sx={{ mb: "15px" }}>
-          Languages
-        </Typography>
-
+    <Box
+      display="flex"
+      flexDirection="column"
+      alignItems="center"
+      justifyContent="center"
+      sx={{ width: "100%", height: "100%" }}
+    >
+      <Box sx={{ width: "20%" }} onClick={(e) => e.stopPropagation()}>
         <List
           sx={{
             width: "100%",
@@ -188,8 +200,7 @@ const EditLanguages = () => {
             marginBottom: "40px",
           }}
         >
-          {languages.map((language, index) => (
-            
+          {languages.map((language, index) =>
             language.languageID === selected.languageID ? (
               <ListItem
                 key={index}
@@ -204,22 +215,22 @@ const EditLanguages = () => {
                 {language.name + " (" + language.shortcut + ")"}
               </ListItem>
             ) : (
-              <ListItemButton 
+              <ListItemButton
                 key={index}
                 sx={{
                   backgroundColor: index % 2 === 0 ? "grey.100" : "white",
                   height: "40px",
                 }}
-                onClick={() => setSelected({...language})}
+                onClick={() => setSelected({ ...language })}
               >
                 {language.name + " (" + language.shortcut + ")"}
               </ListItemButton>
             )
-          ))}
+          )}
         </List>
-        
+
         <Stack direction="row" sx={{ width: "100%" }} spacing={2}>
-            <TextField
+          <TextField
             label="Language name"
             fullWidth
             value={selected.name}
@@ -227,54 +238,64 @@ const EditLanguages = () => {
             variant="outlined"
             disabled={loading}
             inputProps={{ maxLength: 100 }}
-            />
-            <TextField
+          />
+          <TextField
             label="Shortcut"
             value={selected.shortcut}
-            onChange={(e) => setSelected({ ...selected, shortcut: e.target.value })}
+            onChange={(e) =>
+              setSelected({ ...selected, shortcut: e.target.value })
+            }
             variant="outlined"
             inputProps={{ maxLength: 10 }}
-            />
+          />
         </Stack>
 
         {loading ? (
           <CircularProgress />
-        ) : (
-          selected.languageID === null ? (
-            <Button
+        ) : selected.languageID === null ? (
+          <Button
             variant="contained"
             onClick={handleAdd}
-            sx={{ m: "10px "}}
+            sx={{ m: "10px " }}
             disabled={isInvalid}
+          >
+            Add
+          </Button>
+        ) : (
+          <Stack direction="row">
+            <Button
+              variant="contained"
+              onClick={handleSaveChanges}
+              sx={{ m: "10px " }}
+              disabled={selected.name === original?.name || isInvalid}
             >
-              Add
+              Update
             </Button>
-          ) : (
-            <Stack 
-              direction="row" 
+            <Button
+              variant="contained"
+              onClick={() => setDialogOpen(true)}
+              sx={{ m: "10px " }}
             >
-              <Button
-                variant="contained"
-                onClick={handleSaveChanges}
-                sx={{ m: "10px "}}
-                disabled={selected.name === original?.name || isInvalid}
-              >
-                Update
-              </Button>
-              <Button
-                variant="contained"
-                onClick={handleDelete}
-                sx={{ m: "10px "}}
-              >
-                Delete
-              </Button>
-            </Stack>
-          )
+              Delete
+            </Button>
+
+            <Dialog open={dialogOpen} onClose={handleDialogClose}>
+              <DialogTitle>
+                ARE YOU SURE YOU WANT TO DELETE THIS GENRE?
+              </DialogTitle>
+              <DialogContent>This action is irreversible</DialogContent>
+              <DialogActions>
+                <Button onClick={handleConfirmDelete}>YES</Button>
+                <Button onClick={handleDialogClose} color="error" autoFocus>
+                  NO
+                </Button>
+              </DialogActions>
+            </Dialog>
+          </Stack>
         )}
       </Box>
-    </Container>
+    </Box>
   );
 };
-
 
 export default transition(EditLanguages);
