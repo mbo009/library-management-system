@@ -25,12 +25,15 @@ MEDIA_URL = "/covers/"
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-&)67zesy&fbba0qfj34z*9*(*b)=ccunb^)tb12-blf2^!ygu9"
+SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', "django-insecure-&)67zesy&fbba0qfj34z*9*(*b)=ccunb^)tb12-blf2^!ygu9")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv('DJANGO_DEBUG', '') != 'False'
 
-ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
+frontend_public_ip = os.getenv("FRONTEND_PUBLIC_IP", "127.0.0.1")
+
+ALLOWED_HOSTS = ["localhost", frontend_public_ip]
+
 
 
 # Application definition
@@ -149,6 +152,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://localhost:5173",
+    f"http://{frontend_public_ip}",
 ]
 
 SECURE_SSL_REDIRECT = False  # Disable HTTPS redirect for development
@@ -158,6 +162,7 @@ CORS_ALLOW_CREDENTIALS = True  # Enable credentials
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:3000",
     "http://localhost:5173",
+    f"http://{frontend_public_ip}",
 ]
 
 
@@ -183,7 +188,17 @@ AUTH_USER_MODEL = "api.User"
 
 SESSION_COOKIE_SAMESITE = "Lax"
 SESSION_COOKIE_SECURE = False
+SESSION_COOKIE_HTTPONLY = True
 SESSION_ENGINE = "django.contrib.sessions.backends.db"
+
+CSRF_COOKIE_SAMESITE = 'Lax'
+CSRF_COOKIE_SECURE = False
+CSRF_COOKIE_HTTPONLY = True
+
+SESSION_COOKIE_PATH = '/'
+CSRF_COOKIE_PATH = '/'
+SESSION_COOKIE_DOMAIN = None
+CSRF_COOKIE_DOMAIN = None
 
 LOGIN_URL = "/api/sign_in/"
 

@@ -18,8 +18,9 @@ import RemoveIcon from "@mui/icons-material/Remove";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 import FileCopyIcon from "@mui/icons-material/FileCopy";
+import { API_BASE_URL } from "../config";
 
-const API_URL = "http://localhost:8000/api/librarian_keys/";
+const API_URL = `${API_BASE_URL}/librarian_keys/`;
 
 interface LibrarianKey {
   librarian_id: number;

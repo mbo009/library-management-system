@@ -46,7 +46,7 @@ const UserPanel: React.FC<UserPanelProps> = ({ selectedItem, setSelectedItem }) 
           <CloseIcon />
       </IconButton>
 
-      <BookDetails book={selectedItem} isAdmin={false}/>
+      <BookDetails book={selectedItem} isAdmin={false} editBook={null} setEditedBook={null}/>
     </Box>
   );
 };

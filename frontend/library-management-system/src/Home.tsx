@@ -20,6 +20,7 @@ import AdminPanel from "./AdminPanel";
 import UserPanel from "./UserPanel";
 import Logo from "./utils/Logo";
 import CoverFrame from "./librarian/CoverFrame";
+import { API_BASE_URL } from "./config";
 
 const Home = () => {
   const [query, setQuery] = useState<string>("");
@@ -59,7 +60,7 @@ const Home = () => {
       console.log("Fetching user books...");
 
       const response = await fetch(
-        "http://localhost:8000/api/get_user_books/",
+        `${API_BASE_URL}/get_user_books/`,
         {
           method: "GET",
           headers: {
@@ -97,7 +98,7 @@ const Home = () => {
       console.log("Searching books matching query: ", query);
 
       const response = await fetch(
-        `http://localhost:8000/api/find_book/?query=${query}`,
+        `${API_BASE_URL}/find_book/?query=${query}`,
         {
           method: "GET",
           headers: {
@@ -127,7 +128,7 @@ const Home = () => {
       console.log("Searching users matching query: ", query);
 
       const response = await fetch(
-        `http://localhost:8000/api/find_user/?query=${query}`,
+        `${API_BASE_URL}/find_user/?query=${query}`,
         {
           method: "GET",
           headers: {
@@ -344,7 +345,7 @@ const Home = () => {
         <Paper
           // variant="outlined"
           elevation={20}
-          sx={{ height: "100%", display: "flex", flexDirection: "column" }}
+          sx={{ height: "100%", display: "flex", flexDirection: "column", overflowY: 'auto' }}
         >
           {user?.is_librarian ? (
             <AdminPanel

@@ -58,14 +58,52 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
     );
   }
 
+  if (isUserProfileType(selectedItem)) {
+    return (
+      <Box
+        p={3}
+        position={"relative"}
+        alignContent={"center"}
+        textAlign={"center"}
+        alignItems={"center"}
+        alignSelf={"center"}
+      >
+        <IconButton
+          aria-label="close"
+          onClick={() => {
+            setSelectedItem(null);
+            setIsEditingBook(false);
+            setIsCreatingBook(false);
+          }}
+          sx={(theme) => ({
+            position: "absolute",
+            right: 32,
+            top: 32,
+            color: theme.palette.grey[500],
+            zIndex: 100,
+          })}
+        >
+          <CloseIcon />
+        </IconButton>
+
+        <Box sx={{ mt: "25px" }}>
+          <UserDetails userData={selectedItem} />
+        </Box>
+      </Box>
+    );
+  }
+
   return (
     <Box
-      p={3}
-      position={"relative"}
-      alignContent={"center"}
-      textAlign={"center"}
-      alignItems={"center"}
-      alignSelf={"center"}
+      position="relative"
+      display="flex"
+      flexDirection="column"
+      alignItems="center"
+      justifyContent="center"
+      sx={{
+        height: '100%', // Use available height
+        overflowY: 'auto', // Enable vertical scrolling
+      }}
     >
       <IconButton
         aria-label="close"
@@ -86,50 +124,20 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
       </IconButton>
 
       {isEditingBook && (
-        <Box
-          position="relative"
-          display="flex"
-          flexDirection="column"
-          alignItems="center"
-          justifyContent="center"
-        >
           <EditBook create={false} bookID={editedBook} />
-        </Box>
       )}
 
       {isCreatingBook && (
-        <Box
-          position="relative"
-          display="flex"
-          flexDirection="column"
-          alignItems="center"
-          justifyContent="center"
-        >
           <EditBook create={true} />
-        </Box>
-      )}
-
-      {isUserProfileType(selectedItem) && (
-        <Box sx={{ mt: "25px" }}>
-          <UserDetails userData={selectedItem} />
-        </Box>
       )}
 
       {isBookType(selectedItem) && (
-        <Box
-          position="relative"
-          display="flex"
-          flexDirection="column"
-          alignItems="center"
-          justifyContent="center"
-        >
           <BookDetails
             book={selectedItem}
             editBook={setIsEditingBook}
             isAdmin={true}
             setEditedBook={setEditedBook}
           />
-        </Box>
       )}
     </Box>
   );

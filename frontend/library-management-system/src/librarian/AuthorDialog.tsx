@@ -15,6 +15,7 @@ import {
 } from "@mui/material";
 import { Edit } from "@mui/icons-material";
 import EditAuthor from "./Author";
+import { API_BASE_URL } from "../config";
 
 interface Author {
   id: number | undefined;
@@ -44,7 +45,7 @@ const AuthorDialog: React.FC<AuthorDialogProps> = ({
   useEffect(() => {
     const fetchAuthors = async () => {
       try {
-        const response = await fetch(`http://localhost:8000/api/authors`);
+        const response = await fetch(`${API_BASE_URL}/authors`);
 
         if (response.ok) {
           setAllAuthors(await response.json());

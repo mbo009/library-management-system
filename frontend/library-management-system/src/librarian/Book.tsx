@@ -30,6 +30,7 @@ import AuthorDialog from "./AuthorDialog";
 import { Add } from "@mui/icons-material";
 import EditLanguages from "./Languages";
 import EditGenres from "./Genres";
+import { API_BASE_URL } from "../config";
 
 interface Author {
   id: number;
@@ -126,7 +127,7 @@ const EditBook: React.FC<EditBookProps> = ({ create, bookID }) => {
     const fetchBook = async () => {
       try {
         const response = await fetch(
-          `http://localhost:8000/api/book/${bookID}`
+          `${API_BASE_URL}/book/${bookID}`
         );
 
         if (response.ok) {
@@ -150,7 +151,7 @@ const EditBook: React.FC<EditBookProps> = ({ create, bookID }) => {
 
     const fetchLanguages = async () => {
       try {
-        const response = await fetch(`http://localhost:8000/api/languages/`);
+        const response = await fetch(`${API_BASE_URL}/languages/`);
 
         if (response.ok) {
           setLanguages(await response.json());
@@ -164,7 +165,7 @@ const EditBook: React.FC<EditBookProps> = ({ create, bookID }) => {
 
     const fetchGenres = async () => {
       try {
-        const response = await fetch(`http://localhost:8000/api/genres/`);
+        const response = await fetch(`${API_BASE_URL}/genres/`);
 
         if (response.ok) {
           setGenres(await response.json());
@@ -250,10 +251,10 @@ const EditBook: React.FC<EditBookProps> = ({ create, bookID }) => {
 
       let api, method;
       if (create) {
-        api = "http://localhost:8000/api/create_book/";
+        api = `${API_BASE_URL}/create_book/`;
         method = "POST";
       } else {
-        api = `http://localhost:8000/api/update_book/${book.bookID}/`;
+        api = `${API_BASE_URL}/update_book/${book.bookID}/`;
         method = "PUT";
       }
 

@@ -18,6 +18,7 @@ import {
 } from "@mui/material";
 import transition from "./utils/transition";
 import CoverFrame from "./librarian/CoverFrame";
+import { API_BASE_URL } from "./config";
 
 interface Author {
   id: number;
@@ -93,10 +94,13 @@ const Book: React.FC<BookProps> = ({
 
   useEffect(() => {
     const csrftoken = getCookie("csrftoken");
+    if (!csrftoken)
+      return;
+
     const fetchBookQueue = async () => {
       try {
         const response = await fetch(
-          `http://localhost:8000/api/book_queue/${book.bookID}/`
+          `${API_BASE_URL}/book_queue/${book.bookID}/`
         );
         setLoading(false);
 
@@ -111,7 +115,7 @@ const Book: React.FC<BookProps> = ({
     const fetchReservationStatus = async () => {
       try {
         const response = await fetch(
-          `http://localhost:8000/api/reserve-book/${book.bookID}/`,
+          `${API_BASE_URL}/reserve-book/${book.bookID}/`,
           {
             method: "GET",
             headers: {
@@ -147,7 +151,7 @@ const Book: React.FC<BookProps> = ({
       const csrftoken = getCookie("csrftoken");
       if (!csrftoken) throw Error(`Error`);
 
-      const response = await fetch(`http://localhost:8000/api/reserve-book/`, {
+      const response = await fetch(`${API_BASE_URL}/reserve-book/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -352,8 +356,8 @@ const Book: React.FC<BookProps> = ({
             <Button
               sx={{ mt: "20px" }}
               onClick={() => {
-                editBook(true);
-                setEditedBook(book.bookID);
+                if (editBook) { editBook(true); }
+                if (setEditedBook) { setEditedBook(book.bookID); }
               }}
             >
               Edit

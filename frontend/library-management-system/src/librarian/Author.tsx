@@ -1,6 +1,7 @@
 import React, { useEffect, useState, SetStateAction } from "react";
-// import { useSearchParams } from "react-router-dom";
 import { TextField, Box, Button, CircularProgress } from "@mui/material";
+import { API_BASE_URL } from "../config";
+
 interface Author {
   id: number | undefined;
   name: string;
@@ -38,7 +39,7 @@ const EditAuthor: React.FC<EditAuthorProps> = ({
       try {
         setLoading(true);
         const response = await fetch(
-          `http://localhost:8000/api/author/${authorID}`
+          `${API_BASE_URL}/author/${authorID}`
         );
         if (!response.ok) {
           throw new Error(`Status: ${response.status}`);
@@ -61,10 +62,10 @@ const EditAuthor: React.FC<EditAuthorProps> = ({
   const handleSaveAuthor = async () => {
     let api, method;
     if (create) {
-      api = "http://localhost:8000/api/create_author/";
+      api = `${API_BASE_URL}/create_author/`;
       method = "POST";
     } else {
-      api = `http://localhost:8000/api/update_author/${author.id}/`;
+      api = `${API_BASE_URL}/update_author/${author.id}/`;
       method = "PUT";
     }
 

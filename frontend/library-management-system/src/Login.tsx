@@ -20,6 +20,7 @@ import PasswordValidation from "./PasswordValidation";
 import transition from "./utils/transition";
 import SHA256 from "crypto-js/sha256";
 import Logo from "./utils/Logo";
+import { API_BASE_URL } from "./config";
 
 interface PasswordInfo {
   passwordTooShort: boolean;
@@ -103,7 +104,7 @@ const Login: React.FC = () => {
     const e_mail = emailElement?.value || "";
     const password = SHA256(passwordElement?.value || "").toString();
 
-    const response = await fetch("http://localhost:8000/api/sign_in/", {
+    const response = await fetch(`${API_BASE_URL}/sign_in/`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -144,7 +145,7 @@ const Login: React.FC = () => {
       librarian_key: checked ? librarianToken : "",
     });
 
-    const response = await fetch("http://localhost:8000/api/sign_up/", {
+    const response = await fetch(`${API_BASE_URL}/sign_up/`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

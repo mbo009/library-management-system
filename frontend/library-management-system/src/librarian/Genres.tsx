@@ -15,6 +15,7 @@ import {
   DialogActions,
 } from "@mui/material";
 import transition from "../utils/transition";
+import { API_BASE_URL } from "../config";
 
 interface Genre {
   genreID: number | null;
@@ -51,7 +52,7 @@ const EditGenres: React.FC<EditGenresProps> = ({
     const fetchGenres = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`http://localhost:8000/api/genres/`);
+        const response = await fetch(`${API_BASE_URL}/genres/`);
 
         if (response.ok) {
           setGenres(await response.json());
@@ -78,7 +79,7 @@ const EditGenres: React.FC<EditGenresProps> = ({
     try {
       setLoading(true);
       const response = await fetch(
-        `http://localhost:8000/api/genres/${selected.genreID}/`,
+        `${API_BASE_URL}/genres/${selected.genreID}/`,
         {
           method: "PUT",
           body: JSON.stringify(requestBody),
@@ -111,7 +112,7 @@ const EditGenres: React.FC<EditGenresProps> = ({
 
     try {
       setLoading(true);
-      const response = await fetch(`http://localhost:8000/api/genres/`, {
+      const response = await fetch(`${API_BASE_URL}/genres/`, {
         method: "POST",
         body: JSON.stringify(requestBody),
         headers: {
@@ -137,7 +138,7 @@ const EditGenres: React.FC<EditGenresProps> = ({
     try {
       setLoading(true);
       const response = await fetch(
-        `http://localhost:8000/api/genres/${selected.genreID}/`,
+        `${API_BASE_URL}/genres/${selected.genreID}/`,
         {
           method: "DELETE",
           headers: {

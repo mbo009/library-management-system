@@ -9,6 +9,7 @@ import {
 } from "@mui/material";
 import { UserProfile } from "./types/UserProfile";
 import React, { useState } from "react";
+import { API_BASE_URL } from "./config";
 
 type UserDetailsProps = {
   userData: UserProfile;
@@ -17,7 +18,7 @@ type UserDetailsProps = {
 const issueBook = async (bookID: number, userID: number) => {
   try {
     console.log("Issuing book:", bookID);
-    const response = await fetch("http://localhost:8000/api/borrow-book/", {
+    const response = await fetch(`${API_BASE_URL}/borrow-book/`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -42,7 +43,7 @@ const issueBook = async (bookID: number, userID: number) => {
 const returnBook = async (bookID: number, userID: number) => {
   try {
     console.log("Returning book:", bookID);
-    const response = await fetch("http://localhost:8000/api/return-book/", {
+    const response = await fetch(`${API_BASE_URL}/return-book/`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
