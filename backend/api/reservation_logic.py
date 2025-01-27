@@ -36,7 +36,6 @@ def create_reservation(book_id, user_id, queued):
     status = "Waiting"
     if verify_inventory(book_id):
         logger.info(f"No queue found for book_id={book_id}, checking inventory")
-        # if len(queued) == 0:
         logger.info(f"Inventory available for book_id={book_id}")
         event_data = {
             "book_id": book_id,
@@ -50,18 +49,19 @@ def create_reservation(book_id, user_id, queued):
         logger.info(f"Kafka message sent for book_id={book_id}, user_id={user_id}")
         queue_date = date.today()
         status = "Ready"
-        # else:
-        #     logger.warning(f"No inventory available for book_id={book_id}")
-        #     queue_date = (
-        #         BorrowedBook.objects.filter(book_id=book_id)
-        #         .order_by("expected_return_date")
-        #         .first()
-        #         .expected_return_date
-        #     )
         turn = 0
     else:
-        turn = queued.last().turn + 1
-        queue_date = queued.last().queue_date + timedelta(days=14)
+        if len(queued) == 0:
+            turn = 0
+            queue_date = (
+            BorrowedBook.objects.filter(book_id=book_id)
+            .order_by("expected_return_date")
+            .first()
+            .expected_return_date
+        )
+        else:
+            turn = queued.last().turn + 1
+            queue_date = queued.last().queue_date + timedelta(days=14)
         logger.info(
             f"Queue updated for book_id={book_id}: turn={turn}, queue_date={queue_date}"
         )
