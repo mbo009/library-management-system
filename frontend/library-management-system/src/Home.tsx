@@ -44,6 +44,8 @@ const Home = () => {
 
   const [toggleButtonValue, setToggleButtonValue] = useState<string>("book");
 
+  const [searchDataTime, setSearchDataTime] = useState(new Date());
+
   useEffect(() => {
     loadUserBooks();
   }, []);
@@ -96,7 +98,7 @@ const Home = () => {
     try {
       setSearchLoading(true);
       console.log("Searching books matching query: ", query);
-
+      const searchMoment = new Date();
       const response = await fetch(
         `${API_BASE_URL}/find_book/?query=${query}`,
         {
@@ -111,6 +113,10 @@ const Home = () => {
         throw new Error("Network response was not ok");
       }
 
+      if (searchMoment < searchDataTime) {
+        return;
+      }
+      setSearchDataTime(searchMoment);
       const books = await response.json();
 
       console.log("Fetched books list:", books);
@@ -126,7 +132,7 @@ const Home = () => {
     try {
       setSearchLoading(true);
       console.log("Searching users matching query: ", query);
-
+      const searchMoment = new Date();
       const response = await fetch(
         `${API_BASE_URL}/find_user/?query=${query}`,
         {
@@ -137,6 +143,11 @@ const Home = () => {
           credentials: "include",
         }
       );
+
+      if (searchMoment < searchDataTime) {
+        return;
+      }
+      setSearchDataTime(searchMoment);
 
       if (!response.ok) {
         throw new Error("Network response was not ok");
